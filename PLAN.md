@@ -80,12 +80,8 @@ Kosho is a CLI tool that creates git worktrees in a `.kosho` folder at the repo 
 ## Enhanced Features
 
 - [ ] Add `kosho attach NAME` - attach an interactive zsh shell to a running kosho container
-- [ ] Add `kosho logs NAME` - view container logs
-- [ ] Add `kosho clean` - cleanup stopped containers and unused volumes
-- [ ] Add configuration file support for default settings
-- [ ] Add shell completion scripts
+- [ ] Add `kosho prune` - cleanup any dangling volumes and run `git worktree prune` to cleanup any dangling worktree refs
 
-## Current Status
+## Documentation
 
-✅ **Core CLI functionality complete** - All commands implemented with bash session fallbacks
-⏳ **Next Phase** - Replace bash sessions with full Docker container integration
+- [ ] Provide a simple quickstart guide in the README

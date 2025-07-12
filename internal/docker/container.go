@@ -51,7 +51,7 @@ func CreateContainer(repoName, worktreeName, worktreePath string) error {
 	fmt.Printf("  Config volume: %s\n", configVolume)
 	fmt.Printf("  History volume: %s\n", historyVolume)
 	fmt.Printf("  Workspace mount: %s:/workspace\n", worktreePath)
-	fmt.Printf("  Image: kosho-img\n")
+	fmt.Printf("  Image: kosho-runtime\n")
 	fmt.Printf("  Capabilities: NET_ADMIN, NET_RAW\n")
 
 	return nil
