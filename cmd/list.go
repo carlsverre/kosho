@@ -3,10 +3,14 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
+	"kosho/internal/docker"
 	"kosho/internal/git"
+	"kosho/internal/worktree"
 )
 
 var listCmd = &cobra.Command{
@@ -51,13 +55,56 @@ var listCmd = &cobra.Command{
 		for _, entry := range entries {
 			if entry.IsDir() {
 				name := entry.Name()
-				// Stub: In real implementation, would check git status and container status
-				fmt.Printf("%s\t\t[stub]\t\t[stub]\n", name)
+				kw := worktree.NewKoshoWorktree(repoRoot, name)
+
+				// Check git status
+				gitStatus := getWorktreeStatus(kw.WorktreePath())
+
+				// Check container status
+				containerStatus := getContainerStatus(kw.ContainerName())
+
+				fmt.Printf("%s\t\t%s\t\t%s\n", name, gitStatus, containerStatus)
 			}
 		}
 
 		return nil
 	},
+}
+
+func getWorktreeStatus(worktreePath string) string {
+	// Check if there are uncommitted changes
+	gitCmd := exec.Command("git", "status", "--porcelain")
+	gitCmd.Dir = worktreePath
+
+	output, err := gitCmd.CombinedOutput()
+	if err != nil {
+		return "error"
+	}
+
+	if len(strings.TrimSpace(string(output))) == 0 {
+		return "clean"
+	}
+	return "dirty"
+}
+
+func getContainerStatus(containerName string) string {
+	running, err := docker.IsContainerRunning(containerName)
+	if err != nil {
+		return "error"
+	}
+	if running {
+		return "running"
+	}
+
+	exists, err := docker.ContainerExists(containerName)
+	if err != nil {
+		return "error"
+	}
+	if exists {
+		return "stopped"
+	}
+
+	return "none"
 }
 
 func init() {

@@ -41,6 +41,12 @@ RUN ARCH=$(dpkg --print-architecture) && \
 RUN curl https://raw.githubusercontent.com/junegunn/fzf/master/shell/completion.zsh -o /usr/share/doc/fzf/examples/completion.zsh
 RUN curl https://raw.githubusercontent.com/junegunn/fzf/master/shell/key-bindings.zsh -o /usr/share/doc/fzf/examples/key-bindings.zsh
 
+# Copy and set up firewall script
+COPY assets/init-firewall.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/init-firewall.sh && \
+  echo "ubuntu ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/ubuntu-firewall && \
+  chmod 0440 /etc/sudoers.d/ubuntu-firewall
+
 # Set up non-root user
 USER ubuntu
 
@@ -63,19 +69,14 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
 # Install Claude
 RUN npm install -g @anthropic-ai/claude-code
 
-# Copy and set up firewall script
-COPY scripts/init-firewall.sh /usr/local/bin/
-USER root
-RUN chmod +x /usr/local/bin/init-firewall.sh && \
-  echo "ubuntu ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/ubuntu-firewall && \
-  chmod 0440 /etc/sudoers.d/ubuntu-firewall
-USER ubuntu
-
 # Configuration vars
 ENV NODE_OPTIONS=--max-old-space-size=4096
 ENV CLAUDE_CONFIG_DIR=/home/ubuntu/.claude
 ENV POWERLEVEL9K_DISABLE_GITSTATUS=true
 ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
 
-COPY scripts/startup.sh /usr/local/bin
+# initialize Claude settings
+COPY assets/claude-settings.default.json /home/ubuntu/.claude/settings.json
+
+COPY assets/startup.sh /usr/local/bin
 ENTRYPOINT [ "/usr/local/bin/startup.sh" ]

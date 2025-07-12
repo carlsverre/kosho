@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"kosho/internal/docker"
 	"kosho/internal/git"
+	"kosho/internal/worktree"
 )
 
 var forceFlag bool
@@ -32,16 +33,16 @@ If the worktree is dirty, use --force to continue.`,
 			return fmt.Errorf("failed to find git repository: %w", err)
 		}
 
-		worktreePath := filepath.Join(repoRoot, ".kosho", name)
+		kw := worktree.NewKoshoWorktree(repoRoot, name)
 
 		// Check if worktree exists
-		if _, err := os.Stat(worktreePath); os.IsNotExist(err) {
+		if _, err := os.Stat(kw.WorktreePath()); os.IsNotExist(err) {
 			return fmt.Errorf("worktree '%s' does not exist", name)
 		}
 
 		// Check if worktree is dirty (has uncommitted changes)
 		if !forceFlag {
-			isDirty, err := isWorktreeDirty(worktreePath)
+			isDirty, err := isWorktreeDirty(kw.WorktreePath())
 			if err != nil {
 				return fmt.Errorf("failed to check worktree status: %w", err)
 			}
@@ -50,13 +51,18 @@ If the worktree is dirty, use --force to continue.`,
 			}
 		}
 
-		// Stub: Stop container if running
-		fmt.Printf("Stopping container for worktree '%s' (if running)\n", name)
+		// Stop and remove container if it exists
+		containerName := kw.ContainerName()
+
+		fmt.Printf("Stopping and removing container for worktree '%s' (if exists)\n", name)
+		if err := docker.RemoveContainer(containerName); err != nil {
+			fmt.Printf("Warning: failed to remove container: %v\n", err)
+		}
 
 		// Remove the git worktree
 		fmt.Printf("Removing worktree '%s'\n", name)
 
-		gitArgs := []string{"worktree", "remove", worktreePath}
+		gitArgs := []string{"worktree", "remove", kw.WorktreePath()}
 		if forceFlag {
 			gitArgs = append(gitArgs, "--force")
 		}

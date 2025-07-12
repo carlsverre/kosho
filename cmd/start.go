@@ -5,31 +5,25 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
 	"kosho/internal/docker"
 	"kosho/internal/git"
-)
+	"kosho/internal/worktree"
 
-var detachedFlag bool
+	"github.com/spf13/cobra"
+)
 
 var startCmd = &cobra.Command{
 	Use:   "start [flags] [NAME]",
 	Short: "Start a kosho worktree environment",
 	Long: `Start an interactive development environment in a kosho worktree.
-If NAME is not provided, tries to determine from current directory.
-Use -d flag to run in detached mode.`,
-	Args: cobra.MaximumNArgs(1),
+If NAME is not provided, tries to determine from current directory.`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var name string
-		if len(args) > 0 {
-			name = args[0]
-		}
-
-		return startWorktree(name, detachedFlag)
+		return startWorktree(args[0])
 	},
 }
 
-func startWorktree(name string, detached bool) error {
+func startWorktree(name string) error {
 	// Get current directory and find git root
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -57,23 +51,17 @@ func startWorktree(name string, detached bool) error {
 		}
 	}
 
-	worktreePath := filepath.Join(repoRoot, ".kosho", name)
+	kw := worktree.NewKoshoWorktree(repoRoot, name)
 
 	// Check if worktree exists
-	if _, err := os.Stat(worktreePath); os.IsNotExist(err) {
+	if _, err := os.Stat(kw.WorktreePath()); os.IsNotExist(err) {
 		return fmt.Errorf("worktree '%s' does not exist", name)
 	}
 
-	if detached {
-		fmt.Printf("Starting detached environment for worktree '%s'\n", name)
-		return docker.StartDetachedShell(worktreePath)
-	} else {
-		fmt.Printf("Starting interactive environment for worktree '%s'\n", name)
-		return docker.StartInteractiveShell(worktreePath)
-	}
+	fmt.Printf("Starting interactive environment for worktree '%s'\n", name)
+	return docker.StartInteractiveShell(kw)
 }
 
 func init() {
 	rootCmd.AddCommand(startCmd)
-	startCmd.Flags().BoolVarP(&detachedFlag, "detached", "d", false, "run in detached mode")
 }

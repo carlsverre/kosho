@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"kosho/internal/git"
+	"kosho/internal/worktree"
 )
 
 var (
@@ -39,12 +39,10 @@ Use -b to create a new branch or -B to create/reset a branch.`,
 			return fmt.Errorf("failed to find git repository: %w", err)
 		}
 
-		// Worktree directory is .kosho in repo root
-		worktreeDir := filepath.Join(repoRoot, ".kosho")
-		worktreePath := filepath.Join(worktreeDir, name)
+		kw := worktree.NewKoshoWorktree(repoRoot, name)
 
 		// Check if worktree already exists
-		if _, err := os.Stat(worktreePath); err == nil {
+		if _, err := os.Stat(kw.WorktreePath()); err == nil {
 			return fmt.Errorf("worktree '%s' already exists", name)
 		}
 
@@ -54,18 +52,18 @@ Use -b to create a new branch or -B to create/reset a branch.`,
 			return fmt.Errorf("failed to update .gitignore: %w", err)
 		}
 
-		fmt.Printf("Creating worktree '%s' in %s\n", name, worktreePath)
+		fmt.Printf("Creating worktree '%s' in %s\n", name, kw.WorktreePath())
 
 		// Create the worktree
-		err = git.CreateKoshoWorktree(repoRoot, name, worktreeDir, branchFlag, newBranchFlag, commitish)
+		err = git.CreateKoshoWorktree(repoRoot, name, kw.KoshoDir(), branchFlag, newBranchFlag, commitish)
 		if err != nil {
 			return fmt.Errorf("failed to create worktree: %w", err)
 		}
 
-		fmt.Printf("Worktree created successfully at %s\n", worktreePath)
+		fmt.Printf("Worktree created successfully at %s\n", kw.WorktreePath())
 
 		// Fall through to start command
-		return startWorktree(name, false)
+		return startWorktree(name)
 	},
 }
 

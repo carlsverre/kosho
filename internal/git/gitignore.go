@@ -13,7 +13,7 @@ func EnsureKoshoInGitignore(repoRoot string) error {
 
 	// Check if .gitignore exists and if /.kosho is already in it
 	if file, err := os.Open(gitignorePath); err == nil {
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			line := strings.TrimSpace(scanner.Text())
@@ -28,16 +28,16 @@ func EnsureKoshoInGitignore(repoRoot string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open .gitignore: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Add newline before if file exists and doesn't end with newline
 	if stat, err := file.Stat(); err == nil && stat.Size() > 0 {
 		// Check if file ends with newline
-		file.Seek(-1, 2)
+		_, _ = file.Seek(-1, 2)
 		lastByte := make([]byte, 1)
-		file.Read(lastByte)
+		_, _ = file.Read(lastByte)
 		if lastByte[0] != '\n' {
-			file.WriteString("\n")
+			_, _ = file.WriteString("\n")
 		}
 	}
 

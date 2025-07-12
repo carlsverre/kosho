@@ -24,11 +24,10 @@ Kosho is a CLI tool that creates git worktrees in a `.kosho` folder at the repo 
 - this command will fail if the worktree already exists
 - after creating the worktree this command will fall through to `kosho start`
 
-**kosho start [-d] [NAME]**
+**kosho start [NAME]**
 
 - start the Kosho docker container in the worktree
-- if -d is specified, run the container in the background using some kind of sleep-forever command
-- if -d is not specified, run the container interactively by fully passing through stdin/out/err and all signals and so on.
+- run the container interactively by fully passing through stdin/out/err and all signals and so on.
 
 **kosho list**
 
@@ -57,7 +56,6 @@ Kosho is a CLI tool that creates git worktrees in a `.kosho` folder at the repo 
   - [ ] Workspace volume: bind mount worktree path to `/workspace`
 - [ ] Implement Docker container lifecycle:
   - [ ] `kosho start` interactive mode: full stdin/stdout/stderr passthrough with signal handling
-  - [ ] `kosho start -d` detached mode: run container with sleep-forever command
   - [ ] `kosho stop` functionality: stop running containers
   - [ ] Container and volume cleanup in `kosho remove`
 - [ ] Enhanced `kosho list` command:
