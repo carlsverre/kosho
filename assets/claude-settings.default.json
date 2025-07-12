@@ -3,19 +3,5 @@
     "defaultMode": "acceptEdits",
     "allow": [],
     "deny": []
-  },
-
-  "hooks": {
-    "Notification": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "notify-send 'claude requires assistance'"
-          }
-        ]
-      }
-    ]
   }
 }

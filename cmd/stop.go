@@ -27,13 +27,14 @@ var stopCmd = &cobra.Command{
 }
 
 func stopWorktree(name string) error {
-	// Get current directory and find git root
+	// Get current directory for path detection
 	currentDir, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to get current directory: %w", err)
 	}
 
-	repoRoot, err := git.FindGitRoot(currentDir)
+	// Find git root
+	repoRoot, err := git.FindGitRoot()
 	if err != nil {
 		return fmt.Errorf("failed to find git repository: %w", err)
 	}

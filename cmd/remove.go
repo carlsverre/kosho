@@ -22,13 +22,8 @@ If the worktree is dirty, use --force to continue.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 
-		// Get current directory and find git root
-		currentDir, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("failed to get current directory: %w", err)
-		}
-
-		repoRoot, err := git.FindGitRoot(currentDir)
+		// Find git root
+		repoRoot, err := git.FindGitRoot()
 		if err != nil {
 			return fmt.Errorf("failed to find git repository: %w", err)
 		}

@@ -10,6 +10,10 @@ RUN apt update && apt install -y \
   curl pkg-config build-essential libssl-dev \
   locales golang-go
 
+# Install rustup
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+# Configure locale
 RUN locale-gen
 
 # Ensure default user has access to /usr/local/share
@@ -52,7 +56,7 @@ USER ubuntu
 
 # Install global packages
 ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
-ENV PATH=$PATH:/usr/local/share/npm-global/bin
+ENV PATH=$PATH:/usr/local/share/npm-global/bin:/home/ubuntu/.local/bin:/home/ubuntu/go/bin
 
 # Set the default shell to zsh rather than sh
 ENV SHELL=/bin/zsh

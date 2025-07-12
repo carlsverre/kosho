@@ -28,13 +28,8 @@ Use -b to create a new branch or -B to create/reset a branch.`,
 			commitish = args[1]
 		}
 
-		// Get current directory and find git root
-		currentDir, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("failed to get current directory: %w", err)
-		}
-
-		repoRoot, err := git.FindGitRoot(currentDir)
+		// Find git root
+		repoRoot, err := git.FindGitRoot()
 		if err != nil {
 			return fmt.Errorf("failed to find git repository: %w", err)
 		}

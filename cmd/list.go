@@ -18,13 +18,8 @@ var listCmd = &cobra.Command{
 	Short: "List all kosho worktrees",
 	Long:  `List all kosho worktrees, their git status, and container status.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Get current directory and find git root
-		currentDir, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("failed to get current directory: %w", err)
-		}
-
-		repoRoot, err := git.FindGitRoot(currentDir)
+		// Find git root
+		repoRoot, err := git.FindGitRoot()
 		if err != nil {
 			return fmt.Errorf("failed to find git repository: %w", err)
 		}

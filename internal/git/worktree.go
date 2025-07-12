@@ -43,9 +43,14 @@ func CreateKoshoWorktree(repoPath, worktreeName, worktreeDir, branchFlag, newBra
 	return nil
 }
 
-func FindGitRoot(startPath string) (string, error) {
+func FindGitRoot() (string, error) {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current working directory: %w", err)
+	}
+
 	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
-	cmd.Dir = startPath
+	cmd.Dir = currentDir
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {

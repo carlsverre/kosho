@@ -44,10 +44,6 @@ func (kw *KoshoWorktree) HistoryVolumeName() string {
 	return fmt.Sprintf("%s-%s-history", repoName, kw.WorktreeName)
 }
 
-// RepoName returns the repository name (basename of repo path)
-func (kw *KoshoWorktree) RepoName() string {
-	return filepath.Base(kw.RepoPath)
-}
 
 // KoshoDir returns the path to the .kosho directory
 func (kw *KoshoWorktree) KoshoDir() string {
