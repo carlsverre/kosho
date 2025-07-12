@@ -2,49 +2,49 @@
 
 ## Overview
 
-Kosho is a CLI tool that creates git worktrees in pre-configured locations and launches interactive Docker development environments. The tool aims to streamline the workflow of creating isolated development environments with proper volume mounts and container configuration.
+Kosho is a CLI tool that creates git worktrees in a `.kosho` folder at the repo root and launches interactive development environments. The tool aims to streamline the workflow of creating isolated development environments.
 
 ## Dependencies to use
 
 - write code in golang
 - cobra for argument parsing
-- github.com/docker/docker for managing docker containers
-- https://github.com/go-git/go-git for git
+- github.com/docker/docker/pkg/namesgenerator for naming
+- https://github.com/go-git/go-git for git operations
+- git command line for worktree operations
 
-## Core Requirements
+## Commands
 
-### 1. Worktree Management
+**kosho new [-b<branch>|-B<branch>] [NAME] [commitish]**
 
-- **Location Strategy**: All worktrees for repo "foo" should be stored in `$XDG_DATA_HOME/foo/...` or `$HOME/.local/share` if XDG_DATA_HOME is not specified
-- **Dynamic Naming**: Generate Docker-style names (adjective_noun format) for worktrees
-- **Name Override**: Allow users to specify custom worktree names
+- NAME will be the name of the worktree
+- commitish may be omitted which will result in the same behavior as omitting it from the underlying `git worktree add` command.
+- the `-b|-B` flags will be passed through to git worktree if specified
+- the worktree will be located at `.kosho/$NAME` at the root of the current git repo
+  - `/.kosho` will be added to .gitignore if it's not already there
+- this command will fail if the worktree already exists
+- after creating the worktree this command will fall through to `kosho start`
 
-### 2. Docker Integration
+**kosho start [-d] [NAME]**
 
-- **Run containers with an equivalent command**:
-  ```
-  docker run -it \
-    -v$repo-worktree-config:/home/ubuntu/.claude \
-    -v$repo-worktree-history:/commandhistory \
-    -v$repo-worktree-path:/workspace \
-    --cap-add=NET_ADMIN \
-    --cap-add=NET_RAW \
-    kosho-img
-  ```
-- **Volume Management**: Create and manage the three required volumes
-  - $repo-worktree-config and $repo-worktree-history should be named docker volumes
-  - $repo-worktree-path should be the path to the git worktree
-- **Image Management**: Assume the kosho-img is already built
+- start the Kosho docker container in the worktree
+- if -d is specified, run the container in the background using some kind of sleep-forever command
+- if -d is not specified, run the container interactively by fully passing through stdin/out/err and all signals and so on.
 
-## Implementation Plan
+**kosho list**
 
-- [ ] Set up Cobra CLI framework with root command
-- [ ] Add worktree command with name generation
-- [ ] Implement XDG data directory resolution
-- [ ] Create git worktree using go-git
-- [ ] Add Docker container management
-- [ ] Create named volumes for config and history
-- [ ] Mount worktree path as workspace volume
-- [ ] Add container lifecycle management (start/stop)
-- [ ] Add cleanup commands for worktrees and volumes
-- [ ] Handle error cases and validation
+- list all kosho worktrees, their current git status/ref, and their running state (along with the container name if running)
+
+**kosho stop**
+
+- stop a kosho container if running
+
+**kosho remove [-f|--force] NAME**
+
+- if worktree is dirty, require --force to continue
+- stop the container if running
+- remove the container
+- run `git worktree remove` passing through the `--force` flag if specified
+
+# TODO LIST
+
+- [ ] write a todolist by comparing the current repo state to the revised PLAN.md

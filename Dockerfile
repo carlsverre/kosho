@@ -9,7 +9,7 @@ RUN apt update && apt install -y \
   gnupg2 gh iptables ipset iproute2 dnsutils \
   aggregate jq nodejs npm wget ca-certificates \
   curl pkg-config build-essential libssl-dev \
-  locales
+  locales golang-go
 
 RUN locale-gen
 
