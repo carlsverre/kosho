@@ -8,7 +8,10 @@ RUN apt update && apt install -y \
   less git procps sudo fzf zsh man-db unzip \
   gnupg2 gh iptables ipset iproute2 dnsutils \
   aggregate jq nodejs npm wget ca-certificates \
-  curl
+  curl pkg-config build-essential libssl-dev \
+  locales
+
+RUN locale-gen
 
 # Install Rust toolchain
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y

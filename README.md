@@ -19,10 +19,3 @@ Whether you need automated workflows, scripted coordination, or just a lightweig
 ### 🧭 Philosophy
 
 Inspired by the **kōshō** of feudal Japan — noble-born pages who served samurai and daimyō — this tool values loyalty, discretion, and readiness.
-
-### 🚀 Getting Started
-
-```bash
-cargo install kosho
-kosho run your.task.here
-```
