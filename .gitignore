@@ -1,2 +1,5 @@
 # Binaries
 /kosho
+
+# Kosho worktrees
+.kosho

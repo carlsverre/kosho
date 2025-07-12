@@ -8,28 +8,28 @@ import (
 	"strings"
 )
 
-func EnsureWorktreesInGitignore(repoRoot string) error {
+func EnsureKoshoInGitignore(repoRoot string) error {
 	gitignorePath := filepath.Join(repoRoot, ".gitignore")
-	
-	// Check if .gitignore exists and if .worktrees is already in it
+
+	// Check if .gitignore exists and if /.kosho is already in it
 	if file, err := os.Open(gitignorePath); err == nil {
 		defer file.Close()
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			line := strings.TrimSpace(scanner.Text())
-			if line == ".worktrees" || line == ".worktrees/" {
+			if line == "/.kosho" || line == ".kosho" || line == ".kosho/" {
 				return nil // Already present
 			}
 		}
 	}
-	
-	// Append .worktrees to .gitignore
+
+	// Append /.kosho to .gitignore
 	file, err := os.OpenFile(gitignorePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to open .gitignore: %w", err)
 	}
 	defer file.Close()
-	
+
 	// Add newline before if file exists and doesn't end with newline
 	if stat, err := file.Stat(); err == nil && stat.Size() > 0 {
 		// Check if file ends with newline
@@ -40,11 +40,11 @@ func EnsureWorktreesInGitignore(repoRoot string) error {
 			file.WriteString("\n")
 		}
 	}
-	
-	_, err = file.WriteString(".worktrees\n")
+
+	_, err = file.WriteString("/.kosho\n")
 	if err != nil {
 		return fmt.Errorf("failed to write to .gitignore: %w", err)
 	}
-	
+
 	return nil
 }

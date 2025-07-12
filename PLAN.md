@@ -45,6 +45,47 @@ Kosho is a CLI tool that creates git worktrees in a `.kosho` folder at the repo 
 - remove the container
 - run `git worktree remove` passing through the `--force` flag if specified
 
-# TODO LIST
+# TODO: REMAINING WORK
 
-- [ ] write a todolist by comparing the current repo state to the revised PLAN.md
+## Docker Container Integration
+
+- [ ] Replace bash sessions with actual Docker container management
+- [ ] Implement container naming convention (e.g., `kosho-{repo-name}-{worktree-name}`)
+- [ ] Create and manage Docker volumes for persistent data:
+  - [ ] Config volume: `{repo-name}-{worktree-name}-config` mounted to `/home/ubuntu/.claude`
+  - [ ] History volume: `{repo-name}-{worktree-name}-history` mounted to `/commandhistory`
+  - [ ] Workspace volume: bind mount worktree path to `/workspace`
+- [ ] Implement Docker container lifecycle:
+  - [ ] `kosho start` interactive mode: full stdin/stdout/stderr passthrough with signal handling
+  - [ ] `kosho start -d` detached mode: run container with sleep-forever command
+  - [ ] `kosho stop` functionality: stop running containers
+  - [ ] Container and volume cleanup in `kosho remove`
+- [ ] Enhanced `kosho list` command:
+  - [ ] Show actual git status/ref for each worktree
+  - [ ] Show container running status and container name
+  - [ ] Show last activity/created dates
+
+## Container Configuration
+
+- [ ] Add container configuration options:
+  - [ ] `--cap-add=NET_ADMIN --cap-add=NET_RAW` capabilities
+  - [ ] Environment variable passthrough
+  - [ ] Port mapping options
+  - [ ] Custom image selection
+  - [ ] Pass through the `TZ` environment variable into the container
+- [ ] Container image management:
+  - [ ] If `.kosho/Dockerfile` exists then build and use that docker image
+        Otherwise use the image `kosho-runtime` which is expected to exist.
+
+## Enhanced Features
+
+- [ ] Add `kosho attach NAME` - attach an interactive zsh shell to a running kosho container
+- [ ] Add `kosho logs NAME` - view container logs
+- [ ] Add `kosho clean` - cleanup stopped containers and unused volumes
+- [ ] Add configuration file support for default settings
+- [ ] Add shell completion scripts
+
+## Current Status
+
+✅ **Core CLI functionality complete** - All commands implemented with bash session fallbacks
+⏳ **Next Phase** - Replace bash sessions with full Docker container integration

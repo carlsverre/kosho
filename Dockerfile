@@ -1,7 +1,6 @@
 FROM ubuntu:24.04
 
-ARG TZ="America/Los_Angeles"
-ENV TZ="$TZ"
+ENV TZ="America/Los_Angeles"
 
 # Install basic development tools and iptables/ipset
 RUN apt update && apt install -y \
@@ -12,9 +11,6 @@ RUN apt update && apt install -y \
   locales golang-go
 
 RUN locale-gen
-
-# Install Rust toolchain
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
 # Ensure default user has access to /usr/local/share
 RUN mkdir -p /usr/local/share/npm-global && \
@@ -35,6 +31,7 @@ RUN mkdir -p /workspace /home/ubuntu/.claude && \
 
 WORKDIR /workspace
 
+# Install git-delta for better git diffs
 RUN ARCH=$(dpkg --print-architecture) && \
   wget "https://github.com/dandavison/delta/releases/download/0.18.2/git-delta_0.18.2_${ARCH}.deb" && \
   sudo dpkg -i "git-delta_0.18.2_${ARCH}.deb" && \
@@ -80,4 +77,5 @@ ENV CLAUDE_CONFIG_DIR=/home/ubuntu/.claude
 ENV POWERLEVEL9K_DISABLE_GITSTATUS=true
 ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
 
-ENTRYPOINT [ "/usr/bin/zsh" ]
+COPY scripts/startup.sh /usr/local/bin
+ENTRYPOINT [ "/usr/local/bin/startup.sh" ]

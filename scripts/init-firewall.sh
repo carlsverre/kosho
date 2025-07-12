@@ -53,8 +53,6 @@ done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
 WHITELIST=(
   "registry.npmjs.org"
   "api.anthropic.com"
-  "crates.io"
-  "docs.rs"
 )
 
 # Resolve and add other allowed domains
