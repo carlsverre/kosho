@@ -2,24 +2,22 @@ package cmd
 
 import (
 	"fmt"
+	"kosho/internal"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
-	"kosho/internal/docker"
-	"kosho/internal/git"
-	"kosho/internal/worktree"
 )
 
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all kosho worktrees",
-	Long:  `List all kosho worktrees, their git status, and container status.`,
+	Long:  `List all kosho worktrees and their current git status.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Find git root
-		repoRoot, err := git.FindGitRoot()
+		repoRoot, err := internal.FindGitRoot()
 		if err != nil {
 			return fmt.Errorf("failed to find git repository: %w", err)
 		}
@@ -44,21 +42,21 @@ var listCmd = &cobra.Command{
 		}
 
 		fmt.Println("Kosho Worktrees:")
-		fmt.Println("NAME\t\tSTATUS\t\tCONTAINER")
-		fmt.Println("----\t\t------\t\t---------")
+		fmt.Println("NAME\t\tSTATUS\t\tREF")
+		fmt.Println("----\t\t------\t\t---")
 
 		for _, entry := range entries {
 			if entry.IsDir() {
 				name := entry.Name()
-				kw := worktree.NewKoshoWorktree(repoRoot, name)
+				kw := internal.NewKoshoWorktree(repoRoot, name)
 
 				// Check git status
 				gitStatus := getWorktreeStatus(kw.WorktreePath())
 
-				// Check container status
-				containerStatus := getContainerStatus(kw.ContainerName())
+				// Get current branch/ref
+				gitRef := getWorktreeRef(kw.WorktreePath())
 
-				fmt.Printf("%s\t\t%s\t\t%s\n", name, gitStatus, containerStatus)
+				fmt.Printf("%s\t\t%s\t\t%s\n", name, gitStatus, gitRef)
 			}
 		}
 
@@ -82,24 +80,23 @@ func getWorktreeStatus(worktreePath string) string {
 	return "dirty"
 }
 
-func getContainerStatus(containerName string) string {
-	running, err := docker.IsContainerRunning(containerName)
+func getWorktreeRef(worktreePath string) string {
+	// Get current branch name
+	gitCmd := exec.Command("git", "branch", "--show-current")
+	gitCmd.Dir = worktreePath
+
+	output, err := gitCmd.CombinedOutput()
 	if err != nil {
-		return "error"
-	}
-	if running {
-		return "running"
+		// Try to get HEAD ref instead
+		gitCmd = exec.Command("git", "rev-parse", "--short", "HEAD")
+		gitCmd.Dir = worktreePath
+		output, err = gitCmd.CombinedOutput()
+		if err != nil {
+			return "unknown"
+		}
 	}
 
-	exists, err := docker.ContainerExists(containerName)
-	if err != nil {
-		return "error"
-	}
-	if exists {
-		return "stopped"
-	}
-
-	return "none"
+	return strings.TrimSpace(string(output))
 }
 
 func init() {

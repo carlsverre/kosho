@@ -6,9 +6,9 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "kosho",
-	Short: "A CLI tool for creating git worktrees with Docker development environments",
-	Long: `Kosho creates git worktrees in pre-configured locations and launches
-interactive Docker development environments with proper volume mounts.`,
+	Short: "A CLI tool for managing git worktrees",
+	Long: `Kosho creates and manages git worktrees in .kosho/ directories and helps
+launch tools within them for isolated development environments.`,
 }
 
 func Execute() error {

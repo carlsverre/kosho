@@ -1,14 +1,30 @@
-package git
+package internal
 
 import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
 
-func EnsureKoshoInGitignore(repoRoot string) error {
+func FindGitRoot() (string, error) {
+	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("not a git repository (or any of the parent directories): %w", err)
+	}
+
+	gitRoot := strings.TrimSpace(string(output))
+	return gitRoot, nil
+}
+
+func EnsureGitIgnored(glob string) error {
+	repoRoot, err := FindGitRoot()
+	if err != nil {
+		return fmt.Errorf("failed to find git repository: %w", err)
+	}
 	gitignorePath := filepath.Join(repoRoot, ".gitignore")
 
 	// Check if .gitignore exists and if /.kosho is already in it
@@ -17,7 +33,7 @@ func EnsureKoshoInGitignore(repoRoot string) error {
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			line := strings.TrimSpace(scanner.Text())
-			if line == "/.kosho**" {
+			if line == glob {
 				return nil // Already present
 			}
 		}
@@ -30,7 +46,7 @@ func EnsureKoshoInGitignore(repoRoot string) error {
 	}
 	defer func() { _ = file.Close() }()
 
-	_, err = file.WriteString("/.kosho**\n")
+	_, err = fmt.Fprintf(file, "%s\n", glob)
 	if err != nil {
 		return fmt.Errorf("failed to write to .gitignore: %w", err)
 	}

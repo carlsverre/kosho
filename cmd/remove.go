@@ -6,9 +6,7 @@ import (
 	"os/exec"
 
 	"github.com/spf13/cobra"
-	"kosho/internal/docker"
-	"kosho/internal/git"
-	"kosho/internal/worktree"
+	"kosho/internal"
 )
 
 var forceFlag bool
@@ -16,19 +14,19 @@ var forceFlag bool
 var removeCmd = &cobra.Command{
 	Use:   "remove [flags] NAME",
 	Short: "Remove a kosho worktree",
-	Long: `Remove a kosho worktree and stop any running container.
+	Long: `Remove a kosho worktree.
 If the worktree is dirty, use --force to continue.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 
 		// Find git root
-		repoRoot, err := git.FindGitRoot()
+		repoRoot, err := internal.FindGitRoot()
 		if err != nil {
 			return fmt.Errorf("failed to find git repository: %w", err)
 		}
 
-		kw := worktree.NewKoshoWorktree(repoRoot, name)
+		kw := internal.NewKoshoWorktree(repoRoot, name)
 
 		// Check if worktree exists
 		if _, err := os.Stat(kw.WorktreePath()); os.IsNotExist(err) {
@@ -46,13 +44,6 @@ If the worktree is dirty, use --force to continue.`,
 			}
 		}
 
-		// Stop and remove container if it exists
-		containerName := kw.ContainerName()
-
-		fmt.Printf("Stopping and removing container for worktree '%s' (if exists)\n", name)
-		if err := docker.RemoveContainer(containerName); err != nil {
-			fmt.Printf("Warning: failed to remove container: %v\n", err)
-		}
 
 		// Remove the git worktree
 		fmt.Printf("Removing worktree '%s'\n", name)
