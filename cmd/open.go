@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"syscall"
 
 	"kosho/internal"
@@ -69,15 +68,15 @@ If a command is provided after --, runs that command instead.`,
 				Commitish:  commitish,
 				Reset:      false,
 			}
-			
+
 			// If resetBranchFlag is set, use it instead and set Reset to true
 			if resetBranchFlag != "" {
 				spec.BranchName = resetBranchFlag
 				spec.Reset = true
 			}
-			
+
 			// Create the worktree
-			err := createWorktree(repoRoot, name, kw, spec)
+			err := createWorktree(name, kw, spec)
 			if err != nil {
 				return err
 			}
@@ -86,11 +85,11 @@ If a command is provided after --, runs that command instead.`,
 		}
 
 		// Change to worktree directory and run shell or command
-		return runInWorktree(kw.WorktreePath(), command)
+		return runInWorktree(kw, command)
 	},
 }
 
-func createWorktree(repoRoot, name string, kw *internal.KoshoWorktree, spec internal.BranchSpec) error {
+func createWorktree(name string, kw *internal.KoshoWorktree, spec internal.BranchSpec) error {
 	// Ensure .kosho is in .gitignore
 	err := internal.EnsureGitIgnored("/.kosho**")
 	if err != nil {
@@ -109,16 +108,10 @@ func createWorktree(repoRoot, name string, kw *internal.KoshoWorktree, spec inte
 	return nil
 }
 
-func runInWorktree(worktreePath string, command []string) error {
+func runInWorktree(kw *internal.KoshoWorktree, command []string) error {
 	if len(command) > 0 {
-		// Run the specified command
-		cmd := exec.Command(command[0], command[1:]...)
-		cmd.Dir = worktreePath
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		return cmd.Run()
+		// Run the specified command using the worktree method
+		return kw.RunCommand(command)
 	} else {
 		// Open a new shell instance
 		shell := os.Getenv("SHELL")
@@ -127,7 +120,7 @@ func runInWorktree(worktreePath string, command []string) error {
 		}
 
 		// Change to the worktree directory first
-		if err := os.Chdir(worktreePath); err != nil {
+		if err := os.Chdir(kw.WorktreePath()); err != nil {
 			return fmt.Errorf("failed to change to worktree directory: %w", err)
 		}
 

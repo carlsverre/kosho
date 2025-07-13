@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/spf13/cobra"
 	"kosho/internal"
+
+	"github.com/spf13/cobra"
 )
 
 var pruneCmd = &cobra.Command{
@@ -22,7 +23,7 @@ var pruneCmd = &cobra.Command{
 		fmt.Println("Pruning dangling worktree references...")
 
 		// Run git worktree prune
-		gitCmd := exec.Command("git", "worktree", "prune")
+		gitCmd := exec.Command("git", "worktree", "prune", "--verbose")
 		gitCmd.Dir = repoRoot
 
 		output, err := gitCmd.CombinedOutput()
@@ -31,7 +32,7 @@ var pruneCmd = &cobra.Command{
 		}
 
 		if len(output) > 0 {
-			fmt.Printf("Output: %s", string(output))
+			fmt.Print(string(output))
 		} else {
 			fmt.Println("No dangling worktree references found")
 		}

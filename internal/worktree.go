@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 // BranchSpec encapsulates branch creation parameters for git worktree
@@ -78,4 +79,77 @@ func (kw *KoshoWorktree) CreateIfNotExists(spec BranchSpec) error {
 	}
 
 	return nil
+}
+
+// Remove removes the worktree using git worktree remove
+func (kw *KoshoWorktree) Remove(force bool) error {
+	// Build git worktree remove command
+	args := []string{"worktree", "remove", kw.WorktreePath()}
+	if force {
+		args = append(args, "--force")
+	}
+
+	cmd := exec.Command("git", args...)
+	cmd.Dir = kw.RepoPath
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to remove worktree: %w\nOutput: %s", err, string(output))
+	}
+
+	return nil
+}
+
+// IsDirty checks if the worktree has uncommitted changes
+func (kw *KoshoWorktree) IsDirty() (bool, error) {
+	cmd := exec.Command("git", "status", "--porcelain")
+	cmd.Dir = kw.WorktreePath()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, fmt.Errorf("failed to get git status: %w", err)
+	}
+
+	// If output is empty, worktree is clean
+	return len(output) > 0, nil
+}
+
+// RunCommand runs a command in the worktree directory
+func (kw *KoshoWorktree) RunCommand(command []string) error {
+	if len(command) == 0 {
+		return fmt.Errorf("no command provided")
+	}
+
+	cmd := exec.Command(command[0], command[1:]...)
+	cmd.Dir = kw.WorktreePath()
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
+}
+
+// GitRef returns the current git reference (branch name or commit hash)
+func (kw *KoshoWorktree) GitRef() (string, error) {
+	// Try to get current branch name first
+	cmd := exec.Command("git", "branch", "--show-current")
+	cmd.Dir = kw.WorktreePath()
+
+	output, err := cmd.CombinedOutput()
+	if err == nil {
+		branch := strings.TrimSpace(string(output))
+		if branch != "" {
+			return branch, nil
+		}
+	}
+
+	// If no branch name, get short commit hash
+	cmd = exec.Command("git", "rev-parse", "--short", "HEAD")
+	cmd.Dir = kw.WorktreePath()
+	output, err = cmd.CombinedOutput()
+	if err != nil {
+		return "unknown", nil
+	}
+
+	return strings.TrimSpace(string(output)), nil
 }

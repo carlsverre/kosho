@@ -23,6 +23,3 @@ Kosho is a CLI tool that manages git worktrees in `.kosho/` directories and laun
 - **Types**: Use strong typing; prefer interfaces for dependencies
 - **Documentation**: Document all exported functions and types
 
-## PLAN.md
-
-- Make sure to mark completed tasks in PLAN.md before completing your work.

@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"kosho/internal"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -51,10 +49,21 @@ var listCmd = &cobra.Command{
 				kw := internal.NewKoshoWorktree(repoRoot, name)
 
 				// Check git status
-				gitStatus := getWorktreeStatus(kw.WorktreePath())
+				isDirty, err := kw.IsDirty()
+				var gitStatus string
+				if err != nil {
+					gitStatus = "error"
+				} else if isDirty {
+					gitStatus = "dirty"
+				} else {
+					gitStatus = "clean"
+				}
 
 				// Get current branch/ref
-				gitRef := getWorktreeRef(kw.WorktreePath())
+				gitRef, err := kw.GitRef()
+				if err != nil {
+					gitRef = "unknown"
+				}
 
 				fmt.Printf("%s\t\t%s\t\t%s\n", name, gitStatus, gitRef)
 			}
@@ -64,40 +73,6 @@ var listCmd = &cobra.Command{
 	},
 }
 
-func getWorktreeStatus(worktreePath string) string {
-	// Check if there are uncommitted changes
-	gitCmd := exec.Command("git", "status", "--porcelain")
-	gitCmd.Dir = worktreePath
-
-	output, err := gitCmd.CombinedOutput()
-	if err != nil {
-		return "error"
-	}
-
-	if len(strings.TrimSpace(string(output))) == 0 {
-		return "clean"
-	}
-	return "dirty"
-}
-
-func getWorktreeRef(worktreePath string) string {
-	// Get current branch name
-	gitCmd := exec.Command("git", "branch", "--show-current")
-	gitCmd.Dir = worktreePath
-
-	output, err := gitCmd.CombinedOutput()
-	if err != nil {
-		// Try to get HEAD ref instead
-		gitCmd = exec.Command("git", "rev-parse", "--short", "HEAD")
-		gitCmd.Dir = worktreePath
-		output, err = gitCmd.CombinedOutput()
-		if err != nil {
-			return "unknown"
-		}
-	}
-
-	return strings.TrimSpace(string(output))
-}
 
 func init() {
 	rootCmd.AddCommand(listCmd)
