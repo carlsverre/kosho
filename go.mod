@@ -1,4 +1,4 @@
-module kosho
+module github.com/carlsverre/kosho
 
 go 1.23.0
 
