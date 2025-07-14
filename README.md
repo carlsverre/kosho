@@ -7,6 +7,10 @@
 
 **Kosho** creates and manages git worktrees in `.kosho/` directories, making it easy to work on multiple branches simultaneously without the overhead of cloning repositories or switching contexts.
 
+```bash
+go install github.com/carlsverre/kosho
+```
+
 ## Why Use Kosho?
 
 Kosho is perfect for **running multiple concurrent AI coding agents** like Claude Code, each working on different features or branches in complete isolation:
@@ -18,12 +22,13 @@ Kosho is perfect for **running multiple concurrent AI coding agents** like Claud
 - **📋 Easy Coordination**: Use `kosho list` to see what each agent is working on
 - **🧹 Simple Cleanup**: Remove completed work environments without affecting your main repository
 
-**Example AI agent workflow:**
+**Example workflow using Claude Code:**
+
 ```bash
 # Start Claude Code on feature branch
 kosho open feature-auth -b feature/user-auth -- claude
 
-# Start another agent on bug fixes  
+# Start another agent on bug fixes in a separate shell
 kosho open bugfix-session -- claude
 
 # Check what each agent is working on
@@ -31,30 +36,13 @@ kosho list
 
 # Merge completed work back to main branch
 kosho merge feature-auth -- --squash
-kosho merge bugfix-session
+kosho merge bugfix-session --remove
 
 # Clean up merged worktrees
 kosho remove feature-auth
-kosho remove bugfix-session
 ```
 
-## Features
-
-- **Isolated Worktrees**: Create separate working directories for different branches
-- **Simple CLI**: Intuitive commands for creating, listing, and managing worktrees
-- **Shell Integration**: Open new shell sessions directly in worktree directories
-- **Branch Management**: Create new branches or reset existing ones when creating worktrees
-- **Status Tracking**: View git status and current ref for all worktrees
-
-## Quick Start
-
-### Installation
-
-```bash
-go install github.com/carlsverre/kosho-ai
-```
-
-### Basic Usage
+## Basic Usage
 
 1. **Create and open a worktree**:
 
@@ -126,11 +114,10 @@ Lists all kosho worktrees with their status and current git reference.
 **Output:**
 
 ```
-NAME            STATUS    REF
-----            ------    ---
-my-feature      clean     feature/new-thing
-bugfix          dirty     main
-hotfix          clean     abc1234
+NAME        STATUS  REF
+bugfix      clean   main
+hotfix      dirty   hotfix
+my-feature  dirty   feature/my-feature
 ```
 
 - **STATUS**: `clean` (no uncommitted changes) or `dirty` (has uncommitted changes)
@@ -159,6 +146,7 @@ kosho remove my-feature --force
 Merges a worktree branch into the current branch of the main repository.
 
 **Requirements:**
+
 - Worktree must be clean (no uncommitted changes)
 - Current branch must be an ancestor of the worktree branch
 
@@ -168,7 +156,7 @@ Merges a worktree branch into the current branch of the main repository.
 # Standard merge
 kosho merge feature-auth
 
-# Squash merge  
+# Squash merge
 kosho merge feature-auth -- --squash
 
 # No-fast-forward merge with message
@@ -195,6 +183,16 @@ your-repo/
 ```
 
 Each worktree is a complete working directory that shares the same git history but can have different branches checked out and different working states.
+
+## Shell Completion
+
+Kosho supports tab completion for bash, zsh, fish, and PowerShell. To set up completion for your shell:
+
+```bash
+kosho completion <shell> --help
+```
+
+This command outputs detailed setup instructions specific to your shell.
 
 ## Tips
 
