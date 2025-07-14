@@ -10,8 +10,26 @@ import (
 )
 
 func FindGitRoot() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	// First check if we're in a worktree by examining the git directory
+	cmd := exec.Command("git", "rev-parse", "--git-dir")
 	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("not a git repository (or any of the parent directories): %w", err)
+	}
+
+	gitDir := strings.TrimSpace(string(output))
+
+	// Check if we're in a worktree (git-dir contains .git/worktrees/)
+	if strings.Contains(gitDir, ".git/worktrees/") {
+		// Extract main repo path: /path/to/repo/.git/worktrees/name -> /path/to/repo/.git -> /path/to/repo
+		mainGitDir := strings.Split(gitDir, "/worktrees/")[0]
+		mainRepoRoot := filepath.Dir(mainGitDir)
+		return mainRepoRoot, nil
+	}
+
+	// Not in a worktree, use standard method
+	cmd = exec.Command("git", "rev-parse", "--show-toplevel")
+	output, err = cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("not a git repository (or any of the parent directories): %w", err)
 	}

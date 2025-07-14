@@ -39,7 +39,6 @@ func (kw *KoshoWorktree) WorktreePath() string {
 	return filepath.Join(kw.RepoPath, ".kosho", kw.WorktreeName)
 }
 
-
 func (kw *KoshoWorktree) Exists() (bool, error) {
 	if _, err := os.Stat(kw.WorktreePath()); os.IsNotExist(err) {
 		return false, nil

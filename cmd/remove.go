@@ -46,7 +46,7 @@ If the worktree is dirty, use --force to continue.`,
 
 		// Remove the git worktree
 		fmt.Printf("Removing worktree '%s'\n", name)
-		
+
 		err = kw.Remove(forceFlag)
 		if err != nil {
 			return err
@@ -56,7 +56,6 @@ If the worktree is dirty, use --force to continue.`,
 		return nil
 	},
 }
-
 
 func init() {
 	rootCmd.AddCommand(removeCmd)
