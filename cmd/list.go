@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 )
 
@@ -39,9 +40,7 @@ var listCmd = &cobra.Command{
 			return nil
 		}
 
-		fmt.Println("Kosho Worktrees:")
-		fmt.Println("NAME\t\tSTATUS\t\tREF")
-		fmt.Println("----\t\t------\t\t---")
+		tbl := table.New("NAME", "STATUS", "REF")
 
 		for _, entry := range entries {
 			if entry.IsDir() {
@@ -65,9 +64,11 @@ var listCmd = &cobra.Command{
 					gitRef = "unknown"
 				}
 
-				fmt.Printf("%s\t\t%s\t\t%s\n", name, gitStatus, gitRef)
+				tbl.AddRow(name, gitStatus, gitRef)
 			}
 		}
+
+		tbl.Print()
 
 		return nil
 	},
