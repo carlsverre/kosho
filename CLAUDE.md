@@ -30,5 +30,6 @@ Core features complete including worktree management and merge workflows.
 
 ## Testing Guidelines
 
-- Test kosho manually using the `test-kosho.sh` script.
-- Never manually test kosho in the kosho repo.
+- **Manual Testing**: Use `./test-kosho.sh` to test kosho functionality in a safe environment
+- **Important**: Never manually test kosho commands directly in the kosho repository itself
+- The test script creates an isolated environment to safely verify kosho operations
