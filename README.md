@@ -29,7 +29,11 @@ kosho open bugfix-session -- claude
 # Check what each agent is working on
 kosho list
 
-# Clean up when done
+# Merge completed work back to main branch
+kosho merge feature-auth -- --squash
+kosho merge bugfix-session
+
+# Clean up merged worktrees
 kosho remove feature-auth
 kosho remove bugfix-session
 ```
@@ -148,6 +152,27 @@ kosho remove my-feature
 
 # Force remove dirty worktree
 kosho remove my-feature --force
+```
+
+### `kosho merge [worktree] [-- git-merge-args...]`
+
+Merges a worktree branch into the current branch of the main repository.
+
+**Requirements:**
+- Worktree must be clean (no uncommitted changes)
+- Current branch must be an ancestor of the worktree branch
+
+**Examples:**
+
+```bash
+# Standard merge
+kosho merge feature-auth
+
+# Squash merge  
+kosho merge feature-auth -- --squash
+
+# No-fast-forward merge with message
+kosho merge feature-auth -- --no-ff -m "Add authentication feature"
 ```
 
 ### `kosho prune`

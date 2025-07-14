@@ -44,6 +44,15 @@ func (kw *KoshoWorktree) KoshoDir() string {
 	return filepath.Join(kw.RepoPath, ".kosho")
 }
 
+func (kw *KoshoWorktree) Exists() (bool, error) {
+	if _, err := os.Stat(kw.WorktreePath()); os.IsNotExist(err) {
+		return false, nil
+	} else if err != nil {
+		return false, fmt.Errorf("failed to check worktree path: %w", err)
+	}
+	return true, nil
+}
+
 func (kw *KoshoWorktree) CreateIfNotExists(spec BranchSpec) error {
 	worktreePath := kw.WorktreePath()
 
@@ -152,4 +161,22 @@ func (kw *KoshoWorktree) GitRef() (string, error) {
 	}
 
 	return strings.TrimSpace(string(output)), nil
+}
+
+// GitBranch returns the current branch name of the worktree
+func (kw *KoshoWorktree) GitBranch() (string, error) {
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	cmd.Dir = kw.WorktreePath()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to get worktree branch: %w", err)
+	}
+
+	branch := strings.TrimSpace(string(output))
+	if branch == "HEAD" {
+		return "", fmt.Errorf("worktree is in detached HEAD state")
+	}
+
+	return branch, nil
 }

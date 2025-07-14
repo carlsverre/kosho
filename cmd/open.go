@@ -15,16 +15,8 @@ var (
 	resetBranchFlag string
 )
 
-func splitArgs(cmd *cobra.Command, args []string) ([]string, []string) {
-	argsLenAtDash := cmd.ArgsLenAtDash()
-	if argsLenAtDash < 0 {
-		argsLenAtDash = len(args)
-	}
-	return args[:argsLenAtDash], args[argsLenAtDash:]
-}
-
-func checkArgs(cmd *cobra.Command, args []string) error {
-	args, _ = splitArgs(cmd, args)
+func checkOpenArgs(cmd *cobra.Command, args []string) error {
+	args, _ = internal.SplitArgs(cmd, args)
 	if len(args) < 1 {
 		return fmt.Errorf("NAME argument is required")
 	}
@@ -32,7 +24,6 @@ func checkArgs(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("too many arguments, expected at most 2 (NAME and commitish)")
 	}
 	return nil
-
 }
 
 var openCmd = &cobra.Command{
@@ -42,9 +33,9 @@ var openCmd = &cobra.Command{
 If the worktree doesn't exist, it will be created.
 By default, opens a new shell instance in the worktree.
 If a command is provided after --, runs that command instead.`,
-	Args: checkArgs,
+	Args: checkOpenArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		args, command := splitArgs(cmd, args)
+		args, command := internal.SplitArgs(cmd, args)
 		name := args[0]
 
 		var commitish string

@@ -4,7 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Kosho is a CLI tool that manages git worktrees in `.kosho/` directories and launches Docker container development environments attached to those worktrees.
+Kosho is a CLI tool that manages git worktrees in `.kosho/` directories for isolated development environments, particularly useful for running multiple concurrent AI coding agents.
+
+## Current Development
+
+See PLAN.md for upcoming integration features (PR creation and merge workflows).
 
 ## Build & Test Commands
 
@@ -14,6 +18,7 @@ Kosho is a CLI tool that manages git worktrees in `.kosho/` directories and laun
 - Format: `golangci-lint fmt`
 - Check for dead code: `deadcode .`
 - Tidy dependencies: `go mod tidy`
+- Manual testing: `./test-kosho.sh`
 
 ## Code Style Guidelines
 
@@ -23,3 +28,7 @@ Kosho is a CLI tool that manages git worktrees in `.kosho/` directories and laun
 - **Types**: Use strong typing; prefer interfaces for dependencies
 - **Documentation**: Document all exported functions and types
 
+## Testing Guidelines
+
+- Test kosho manually using the `test-kosho.sh` script.
+- Never manually test kosho in the kosho repo.

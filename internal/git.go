@@ -53,3 +53,20 @@ func EnsureGitIgnored(glob string) error {
 
 	return nil
 }
+
+// IsAncestor checks if ancestorRef is an ancestor of descendantRef using git merge-base
+func IsAncestor(repoPath, ancestorRef, descendantRef string) (bool, error) {
+	cmd := exec.Command("git", "merge-base", "--is-ancestor", ancestorRef, descendantRef)
+	cmd.Dir = repoPath
+
+	err := cmd.Run()
+	if err != nil {
+		// Exit code 1 means not an ancestor, other exit codes are actual errors
+		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to check ancestry: %w", err)
+	}
+
+	return true, nil
+}
