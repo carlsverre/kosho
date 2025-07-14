@@ -33,3 +33,7 @@ Core features complete including worktree management and merge workflows.
 - **Manual Testing**: Use `./test-kosho.sh` to test kosho functionality in a safe environment
 - **Important**: Never manually test kosho commands directly in the kosho repository itself
 - The test script creates an isolated environment to safely verify kosho operations
+
+## Pre-Commit Guidelines
+
+- Always run `golangci-lint fmt/run` before committing to ensure code is properly formatted and linted
