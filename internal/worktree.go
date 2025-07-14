@@ -39,10 +39,6 @@ func (kw *KoshoWorktree) WorktreePath() string {
 	return filepath.Join(kw.RepoPath, ".kosho", kw.WorktreeName)
 }
 
-// KoshoDir returns the path to the .kosho directory
-func (kw *KoshoWorktree) KoshoDir() string {
-	return filepath.Join(kw.RepoPath, ".kosho")
-}
 
 func (kw *KoshoWorktree) Exists() (bool, error) {
 	if _, err := os.Stat(kw.WorktreePath()); os.IsNotExist(err) {

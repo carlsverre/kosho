@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./kosho:*)",
+      "Bash(kosho:*)",
+      "Bash(go:*)",
+      "Bash(deadcode:*)",
+      "Bash(golangci-lint:*)",
+      "Bash(jq:*)",
+      "Bash(./test-kosho.sh:*)"
+    ],
+    "deny": [],
+    "defaultMode": "acceptEdits"
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "notify-send 'claude requires assistance'"
+          }
+        ]
+      }
+    ]
+  }
+}

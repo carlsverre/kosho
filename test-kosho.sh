@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # Test script for kosho - creates a temporary git repo with sample history
-# and opens an interactive shell with kosho in PATH for testing
+# and spawns a Claude Code sub-agent to test kosho functionality
+#
+# Usage: ./test-kosho.sh [additional test instructions...]
 
 set -e
 
@@ -44,7 +46,7 @@ echo -e "${GREEN}Creating sample git history...${NC}"
 # Initial commit
 echo "# Test Project" > README.md
 echo "print('Hello, World!')" > main.py
-git add README.md main.py
+git add .
 git commit -m "Initial commit: Add README and main.py"
 
 # Second commit - update README
@@ -67,16 +69,79 @@ git commit -m "Update main.py to use utils.greet"
 echo -e "${GREEN}Sample git history created:${NC}"
 git log --oneline
 
-echo -e "${YELLOW}Starting interactive shell with kosho in PATH...${NC}"
-echo -e "${YELLOW}Try commands like:${NC}"
-echo -e "  ${GREEN}kosho open feature-test${NC}"
-echo -e "  ${GREEN}kosho list${NC}"
-echo -e "  ${GREEN}kosho remove feature-test${NC}"
-echo -e ""
-echo -e "${YELLOW}Type 'exit' to close the shell and cleanup${NC}"
+echo -e "${YELLOW}Starting Claude Code sub-agent in test directory...${NC}"
 echo -e ""
 
-# Add kosho directory to PATH and start shell
-export PATH="$KOSHO_DIR:$PATH"
+cp "$KOSHO_DIR/kosho" "$TEMP_DIR/"
 
-$SHELL
+cd $TEMP_DIR
+
+CLAUDE_ARGS=(
+  --print
+  --output-format=stream-json
+  --verbose
+  --allowedTools='Bash(./kosho:*) Bash(git:*) Bash(echo:*) Bash(cat:*) Edit MultiEdit Write'
+)
+
+# jq filter for pretty-printing Claude Code streaming JSON
+JQ_FILTER='
+if .type == "system" then
+  "\u001b[35m[SYSTEM]\u001b[0m \(.subtype // "unknown") | Session: \(.session_id[0:8])... | CWD: \(.cwd)"
+elif .type == "user" then
+  if .message.content[0].type == "tool_result" then
+    "\u001b[32m[TOOL_RESULT]\u001b[0m \(.message.content[0].tool_use_id[0:12])...\n\(.message.content[0].content | if type == "string" and (. | length) > 200 then .[0:200] + "..." else . end)"
+  else
+    "\u001b[32m[USER]\u001b[0m \(.message.content[0].text // "No text content")"
+  end
+elif .type == "assistant" then
+  if .message.content[0].type == "text" then
+    "\u001b[34m[ASSISTANT]\u001b[0m \(.message.content[0].text)"
+  elif .message.content[0].type == "tool_use" then
+    "\u001b[36m[TOOL_USE]\u001b[0m \(.message.content[0].name) | ID: \(.message.content[0].id[0:12])...\n  Input: \(.message.content[0].input | tostring | if length > 100 then .[0:100] + "..." else . end)"
+  else
+    "\u001b[34m[ASSISTANT]\u001b[0m Unknown content type: \(.message.content[0].type // "none")"
+  end
+elif .type == "result" then
+  "\u001b[33m[RESULT]\u001b[0m \(.subtype) | Duration: \(.duration_ms)ms | Turns: \(.num_turns) | Cost: $\(.total_cost_usd)\n\(.result | if type == "string" and (. | length) > 300 then .[0:300] + "..." else . end)"
+else
+  "\u001b[31m[UNKNOWN]\u001b[0m Type: \(.type) | \(.)"
+end'
+
+# Build the test instruction
+SYSTEM_PROMPT="You are now in a test repository for kosho. This repo has sample git history with main.py, utils.py, and README.md files.
+
+The kosho CLI tool is available at './kosho'.
+Kosho manages git worktrees in .kosho/ directories for isolated development environments.
+
+Key kosho commands:
+- ./kosho list: Show all worktrees and their status
+- ./kosho open <name> [-b branch]: Create/open a worktree
+- ./kosho merge <name>: Merge worktree branch into current branch
+- ./kosho remove <name>: Remove a worktree
+- ./kosho prune: Clean up dangling worktree references
+
+Always report on what works and any issues you find."
+
+# Default test instructions if none provided
+DEFAULT_INSTRUCTIONS="Test the basic kosho workflow:
+
+1. Run './kosho list' to see current worktrees (should be none)
+2. Create a feature worktree: './kosho open feature-test -b feature/test'
+3. List worktrees again to see the new one
+4. Go into the worktree (.kosho/feature-test) and make some changes, commit them
+5. Come back to repo root and run './kosho merge feature-test'
+6. Test other commands like './kosho remove feature-test'"
+
+# Use provided instructions or default
+if [ $# -gt 0 ]; then
+    TEST_INSTRUCTIONS="$*"
+else
+    TEST_INSTRUCTIONS="$DEFAULT_INSTRUCTIONS"
+fi
+
+FULL_PROMPT="$SYSTEM_PROMPT
+
+$TEST_INSTRUCTIONS"
+
+# Start Claude Code with instructions, parse output with jq
+claude "${CLAUDE_ARGS[@]}" "$FULL_PROMPT" | jq -r "$JQ_FILTER"

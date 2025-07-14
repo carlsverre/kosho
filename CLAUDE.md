@@ -8,7 +8,7 @@ Kosho is a CLI tool that manages git worktrees in `.kosho/` directories for isol
 
 ## Current Development
 
-See PLAN.md for upcoming integration features (PR creation and merge workflows).
+Core features complete including worktree management and merge workflows.
 
 ## Build & Test Commands
 
