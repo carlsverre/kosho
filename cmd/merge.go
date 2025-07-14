@@ -11,6 +11,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var removeFlag bool
+
 func checkMergeArgs(cmd *cobra.Command, args []string) error {
 	args, _ = internal.SplitArgs(cmd, args)
 	if len(args) < 1 {
@@ -31,7 +33,9 @@ var mergeCmd = &cobra.Command{
 The worktree must be clean (no uncommitted changes) and the current branch
 must be an ancestor of the worktree branch for the merge to proceed.
 
-Any arguments after -- are passed directly to git merge.`,
+Any arguments after -- are passed directly to git merge.
+
+Use --remove to automatically remove the worktree after successful merge.`,
 	// Args: checkMergeArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		args, mergeArgs := internal.SplitArgs(cmd, args)
@@ -107,10 +111,22 @@ Any arguments after -- are passed directly to git merge.`,
 		}
 
 		fmt.Printf("Successfully merged '%s' into '%s'\n", worktreeBranch, currentBranch)
+
+		// Remove worktree if --remove flag is set
+		if removeFlag {
+			fmt.Printf("Removing worktree '%s'...\n", worktree)
+			err = kw.Remove(false)
+			if err != nil {
+				return fmt.Errorf("merge succeeded but failed to remove worktree: %w", err)
+			}
+			fmt.Printf("Worktree '%s' removed successfully\n", worktree)
+		}
+
 		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(mergeCmd)
+	mergeCmd.Flags().BoolVarP(&removeFlag, "remove", "r", false, "remove worktree after successful merge")
 }
