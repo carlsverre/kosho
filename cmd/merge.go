@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"kosho/internal"
+	"github.com/carlsverre/kosho/internal"
 
 	"github.com/spf13/cobra"
 )

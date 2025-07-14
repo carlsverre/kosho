@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"kosho/cmd"
+	"github.com/carlsverre/kosho/cmd"
 )
 
 func main() {

@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"kosho/internal"
 	"os"
 	"path/filepath"
+
+	"github.com/carlsverre/kosho/internal"
 
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
