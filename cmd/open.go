@@ -33,7 +33,8 @@ var openCmd = &cobra.Command{
 If the worktree doesn't exist, it will be created.
 By default, opens a new shell instance in the worktree.
 If a command is provided after --, runs that command instead.`,
-	Args: checkOpenArgs,
+	Args:              checkOpenArgs,
+	ValidArgsFunction: internal.WorktreeCompletionFunc,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		args, command := internal.SplitArgs(cmd, args)
 		name := args[0]

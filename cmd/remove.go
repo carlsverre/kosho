@@ -16,7 +16,8 @@ var removeCmd = &cobra.Command{
 	Short: "Remove a kosho worktree",
 	Long: `Remove a kosho worktree.
 If the worktree is dirty, use --force to continue.`,
-	Args: cobra.ExactArgs(1),
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: internal.WorktreeCompletionFunc,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 

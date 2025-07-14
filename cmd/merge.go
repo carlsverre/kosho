@@ -25,9 +25,10 @@ func checkMergeArgs(cmd *cobra.Command, args []string) error {
 }
 
 var mergeCmd = &cobra.Command{
-	Use:   "merge [worktree] [-- git-merge-args...]",
-	Short: "Merge a worktree branch into the current branch",
-	Args:  checkMergeArgs,
+	Use:               "merge [worktree] [-- git-merge-args...]",
+	Short:             "Merge a worktree branch into the current branch",
+	Args:              checkMergeArgs,
+	ValidArgsFunction: internal.WorktreeCompletionFunc,
 	Long: `Merge a worktree branch into the current branch of the main repository.
 
 The worktree must be clean (no uncommitted changes) and the current branch
