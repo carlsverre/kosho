@@ -158,6 +158,27 @@ func (kw *KoshoWorktree) GitRef() (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
+// HasOutstandingCommits checks if the worktree has commits ahead of the main repo's current branch
+func (kw *KoshoWorktree) HasOutstandingCommits(mainRepoBranch string) (bool, error) {
+	// Get worktree branch
+	worktreeBranch, err := kw.GitBranch()
+	if err != nil {
+		return false, fmt.Errorf("failed to get worktree branch: %w", err)
+	}
+
+	// Check if there are commits in worktree branch that are not in main branch
+	cmd := exec.Command("git", "rev-list", "--count", mainRepoBranch+".."+worktreeBranch)
+	cmd.Dir = kw.WorktreePath()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, fmt.Errorf("failed to check outstanding commits: %w", err)
+	}
+
+	count := strings.TrimSpace(string(output))
+	return count != "0", nil
+}
+
 // GitBranch returns the current branch name of the worktree
 func (kw *KoshoWorktree) GitBranch() (string, error) {
 	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")

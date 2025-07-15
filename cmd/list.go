@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/carlsverre/kosho/internal"
 
@@ -41,7 +43,16 @@ var listCmd = &cobra.Command{
 			return nil
 		}
 
-		tbl := table.New("NAME", "STATUS", "REF")
+		// Get current branch of main repo
+		currentBranchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+		currentBranchCmd.Dir = repoRoot
+		currentBranchOutput, err := currentBranchCmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("failed to get current branch: %w", err)
+		}
+		currentBranch := strings.TrimSpace(string(currentBranchOutput))
+
+		tbl := table.New("NAME", "STATUS", "REF", "MERGE-READY")
 
 		for _, entry := range entries {
 			if entry.IsDir() {
@@ -65,7 +76,18 @@ var listCmd = &cobra.Command{
 					gitRef = "unknown"
 				}
 
-				tbl.AddRow(name, gitStatus, gitRef)
+				// Check if worktree has outstanding commits
+				var mergeReady string
+				hasCommits, err := kw.HasOutstandingCommits(currentBranch)
+				if err != nil {
+					mergeReady = "error"
+				} else if hasCommits {
+					mergeReady = "yes"
+				} else {
+					mergeReady = "no"
+				}
+
+				tbl.AddRow(name, gitStatus, gitRef, mergeReady)
 			}
 		}
 

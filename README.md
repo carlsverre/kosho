@@ -5,7 +5,7 @@
 
 ---
 
-**Kosho** creates and manages git worktrees in `.kosho/` directories, making it easy to work on multiple branches simultaneously without the overhead of cloning repositories or switching contexts.
+**Kosho** creates and manages [git worktree]s in `.kosho/` directories, making it easy to work on multiple branches simultaneously without the overhead of cloning repositories or switching contexts.
 
 ```bash
 go install github.com/carlsverre/kosho
@@ -13,14 +13,14 @@ go install github.com/carlsverre/kosho
 
 ## Why Use Kosho?
 
-Kosho is perfect for **running multiple concurrent AI coding agents** like Claude Code, each working on different features or branches in complete isolation:
+Kosho is well-suited for **running multiple concurrent AI coding agents** like Claude Code, each working on different features or branches in separate workspaces:
 
 - **🤖 Multiple AI Agents**: Run Claude Code (or other AI tools) in separate worktrees simultaneously
-- **⚡ No Context Switching**: Work on multiple branches/features at once without git checkout delays
-- **🔒 Perfect Isolation**: Each agent operates in its own workspace with independent git state
-- **🚀 Faster Than Cloning**: Worktrees share the same `.git` directory - no duplicate repositories
+- **⚡ Reduced Context Switching**: Work on multiple branches/features at once without git checkout delays
+- **🔒 Workspace Isolation**: Each agent operates in its own [git worktree] with independent working state
+- **🚀 More Efficient Than Cloning**: Worktrees share the same `.git` directory - no duplicate repositories
 - **📋 Easy Coordination**: Use `kosho list` to see what each agent is working on
-- **🧹 Simple Cleanup**: Remove completed work environments without affecting your main repository
+- **🧹 Easy Cleanup**: Remove completed work environments without affecting your main repository
 
 **Example workflow using Claude Code:**
 
@@ -169,7 +169,7 @@ Cleans up any dangling worktree references using `git worktree prune`.
 
 ## How It Works
 
-Kosho manages git worktrees in a `.kosho/` directory at your repository root:
+Kosho manages [git worktree]s in a `.kosho/` directory at your repository root:
 
 ```
 your-repo/
@@ -200,3 +200,5 @@ This command outputs detailed setup instructions specific to your shell.
 - Each worktree maintains its own working state and uncommitted changes
 - Use `kosho list` to see the status of all your worktrees at a glance
 - Use `kosho prune` periodically to clean up any orphaned references
+
+[git worktree]: https://git-scm.com/docs/git-worktree

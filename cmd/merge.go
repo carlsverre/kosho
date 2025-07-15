@@ -11,7 +11,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var removeFlag bool
+var keepFlag bool
+var commitMessage string
 
 func checkMergeArgs(cmd *cobra.Command, args []string) error {
 	args, _ = internal.SplitArgs(cmd, args)
@@ -36,7 +37,9 @@ must be an ancestor of the worktree branch for the merge to proceed.
 
 Any arguments after -- are passed directly to git merge.
 
-Use --remove to automatically remove the worktree after successful merge.`,
+Worktrees are automatically removed after successful merge unless --keep is specified.
+
+Use -m/--message to commit changes in the worktree before merging.`,
 	// Args: checkMergeArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		args, mergeArgs := internal.SplitArgs(cmd, args)
@@ -59,13 +62,36 @@ Use --remove to automatically remove the worktree after successful merge.`,
 			return fmt.Errorf("worktree `%s` not found", worktree)
 		}
 
-		// Check if worktree is clean
-		isDirty, err := kw.IsDirty()
-		if err != nil {
-			return fmt.Errorf("failed to check worktree status: %w", err)
-		}
-		if isDirty {
-			return fmt.Errorf("worktree `%s` has uncommitted changes. Commit or stash first", worktree)
+		// Handle pre-merge commit if message is provided
+		if commitMessage != "" {
+			// Check for untracked files
+			cmd := exec.Command("git", "ls-files", "--others", "--exclude-standard")
+			cmd.Dir = kw.WorktreePath()
+			untrackedOutput, err := cmd.CombinedOutput()
+			if err != nil {
+				return fmt.Errorf("failed to check for untracked files: %w", err)
+			}
+			if len(strings.TrimSpace(string(untrackedOutput))) > 0 {
+				return fmt.Errorf("worktree `%s` has untracked files. Add them first or remove them before using --message", worktree)
+			}
+
+			// Commit with the provided message
+			commitCmd := exec.Command("git", "commit", "-am", commitMessage)
+			commitCmd.Dir = kw.WorktreePath()
+			commitOutput, err := commitCmd.CombinedOutput()
+			if err != nil {
+				return fmt.Errorf("failed to commit changes: %w\nOutput: %s", err, string(commitOutput))
+			}
+			fmt.Printf("Committed changes in worktree '%s': %s\n", worktree, commitMessage)
+		} else {
+			// Check if worktree is clean
+			isDirty, err := kw.IsDirty()
+			if err != nil {
+				return fmt.Errorf("failed to check worktree status: %w", err)
+			}
+			if isDirty {
+				return fmt.Errorf("worktree `%s` has uncommitted changes. Commit or stash first, or use -m/--message to commit them", worktree)
+			}
 		}
 
 		// Get current branch of main repo
@@ -113,8 +139,8 @@ Use --remove to automatically remove the worktree after successful merge.`,
 
 		fmt.Printf("Successfully merged '%s' into '%s'\n", worktreeBranch, currentBranch)
 
-		// Remove worktree if --remove flag is set
-		if removeFlag {
+		// Remove worktree by default unless --keep flag is set
+		if !keepFlag {
 			fmt.Printf("Removing worktree '%s'...\n", worktree)
 			err = kw.Remove(false)
 			if err != nil {
@@ -129,5 +155,6 @@ Use --remove to automatically remove the worktree after successful merge.`,
 
 func init() {
 	rootCmd.AddCommand(mergeCmd)
-	mergeCmd.Flags().BoolVarP(&removeFlag, "remove", "r", false, "remove worktree after successful merge")
+	mergeCmd.Flags().BoolVar(&keepFlag, "keep", false, "keep worktree after successful merge")
+	mergeCmd.Flags().StringVarP(&commitMessage, "message", "m", "", "commit message for changes in worktree before merging")
 }
