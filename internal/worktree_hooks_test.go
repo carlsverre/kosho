@@ -47,7 +47,9 @@ func TestRunPostCreateHook_ValidHook(t *testing.T) {
 	// Create a simple post-create hook script
 	hookScript := filepath.Join(hooksDir, "post-create")
 	var scriptContent string
+	var fileMode os.FileMode = 0755
 	if runtime.GOOS == "windows" {
+		fileMode = 0644
 		scriptContent = `@echo off
 echo Post-create hook executed
 echo %KOSHO_WORKTREE_NAME% > hook-output.txt
@@ -59,7 +61,7 @@ echo "$KOSHO_WORKTREE_NAME" > hook-output.txt
 `
 	}
 
-	if err := os.WriteFile(hookScript, []byte(scriptContent), 0755); err != nil {
+	if err := os.WriteFile(hookScript, []byte(scriptContent), fileMode); err != nil {
 		t.Fatalf("Failed to create hook script: %v", err)
 	}
 
@@ -128,7 +130,9 @@ func TestRunPostCreateHook_FailingHook(t *testing.T) {
 	// Create a hook script that exits with error
 	hookScript := filepath.Join(hooksDir, "post-create")
 	var scriptContent string
+	var fileMode os.FileMode = 0755
 	if runtime.GOOS == "windows" {
+		fileMode = 0644
 		scriptContent = `@echo off
 echo This hook will fail
 exit 1
@@ -140,7 +144,7 @@ exit 1
 `
 	}
 
-	if err := os.WriteFile(hookScript, []byte(scriptContent), 0755); err != nil {
+	if err := os.WriteFile(hookScript, []byte(scriptContent), fileMode); err != nil {
 		t.Fatalf("Failed to create hook script: %v", err)
 	}
 
@@ -170,7 +174,9 @@ func TestRunPostCreateHook_EnvironmentVariables(t *testing.T) {
 	// Create a hook script that uses environment variables
 	hookScript := filepath.Join(hooksDir, "post-create")
 	var scriptContent string
+	var fileMode os.FileMode = 0755
 	if runtime.GOOS == "windows" {
+		fileMode = 0644
 		scriptContent = `@echo off
 echo %KOSHO_WORKTREE_NAME% > name.txt
 echo %KOSHO_WORKTREE_PATH% > path.txt
@@ -182,7 +188,7 @@ echo "$KOSHO_WORKTREE_PATH" > path.txt
 `
 	}
 
-	if err := os.WriteFile(hookScript, []byte(scriptContent), 0755); err != nil {
+	if err := os.WriteFile(hookScript, []byte(scriptContent), fileMode); err != nil {
 		t.Fatalf("Failed to create hook script: %v", err)
 	}
 

@@ -42,15 +42,20 @@ func FindGitRoot() (string, error) {
 func EnsureKoshoGitIgnore() error {
 	repoRoot, err := FindGitRoot()
 	if err != nil {
-		return fmt.Errorf("failed to find git repository: %w", err)
+		return fmt.Errorf("kosho: failed to find git repository: %w", err)
 	}
 	
 	koshoDir := filepath.Join(repoRoot, ".kosho")
 	gitignorePath := filepath.Join(koshoDir, ".gitignore")
 
+	// Check if .gitignore already exists - don't overwrite user customizations
+	if _, err := os.Stat(gitignorePath); err == nil {
+		return nil // Already exists
+	}
+
 	// Create .kosho directory if it doesn't exist
 	if err := os.MkdirAll(koshoDir, 0755); err != nil {
-		return fmt.Errorf("failed to create .kosho directory: %w", err)
+		return fmt.Errorf("kosho: failed to create .kosho directory: %w", err)
 	}
 
 	// Content for .kosho/.gitignore
@@ -64,7 +69,7 @@ func EnsureKoshoGitIgnore() error {
 
 	// Write the .gitignore file
 	if err := os.WriteFile(gitignorePath, []byte(gitignoreContent), 0644); err != nil {
-		return fmt.Errorf("failed to write .kosho/.gitignore: %w", err)
+		return fmt.Errorf("kosho: failed to write .kosho/.gitignore: %w", err)
 	}
 
 	return nil

@@ -149,7 +149,7 @@ func (kw *KoshoWorktree) RunPostCreateHook(hooksDir string) error {
 	}
 	
 	if info.Mode()&0111 == 0 {
-		return fmt.Errorf("hook %q is not executable", hookPath)
+		return fmt.Errorf("kosho: hook %q is not executable", hookPath)
 	}
 	
 	fmt.Printf("Running post-create hook: %s\n", hookPath)
@@ -168,7 +168,7 @@ func (kw *KoshoWorktree) RunPostCreateHook(hooksDir string) error {
 	)
 	
 	if err := execCmd.Run(); err != nil {
-		return fmt.Errorf("post-create hook failed: %w", err)
+		return fmt.Errorf("kosho: post-create hook failed: %w", err)
 	}
 	
 	return nil

@@ -91,7 +91,7 @@ func createWorktree(name string, kw *internal.KoshoWorktree, spec internal.Branc
 	// Ensure .kosho/.gitignore is set up properly
 	err := internal.EnsureKoshoGitIgnore()
 	if err != nil {
-		return fmt.Errorf("failed to setup .kosho/.gitignore: %w", err)
+		return fmt.Errorf("kosho: failed to setup .kosho/.gitignore: %w", err)
 	}
 
 	fmt.Printf("Creating worktree '%s' in %s\n", name, kw.WorktreePath())
@@ -99,7 +99,7 @@ func createWorktree(name string, kw *internal.KoshoWorktree, spec internal.Branc
 	// Create the worktree
 	err = kw.CreateIfNotExists(spec)
 	if err != nil {
-		return fmt.Errorf("failed to create worktree: %w", err)
+		return fmt.Errorf("kosho: failed to create worktree: %w", err)
 	}
 
 	fmt.Printf("Worktree created successfully at %s\n", kw.WorktreePath())
