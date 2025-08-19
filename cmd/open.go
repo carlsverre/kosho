@@ -82,8 +82,8 @@ If a command is provided after --, runs that command instead.`,
 }
 
 func createWorktree(name string, kw *internal.KoshoWorktree, spec internal.BranchSpec) error {
-	// Ensure .kosho is in .gitignore
-	err := internal.EnsureGitIgnored("/.kosho**")
+	// Ensure the .kosho dir is setup
+	err := internal.SetupKoshoDir()
 	if err != nil {
 		return fmt.Errorf("failed to update .gitignore: %w", err)
 	}
