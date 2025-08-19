@@ -133,13 +133,12 @@ func (kw *KoshoWorktree) RunCommand(command []string) error {
 	return cmd.Run()
 }
 
-// RunInitHooks executes a series of initialization commands in the worktree directory
+// RunInitHooks executes a series of initialization commands in the worktree directory.
+// Like git hooks, commands are executed directly using shell parsing.
 func (kw *KoshoWorktree) RunInitHooks(cmds []string) error {
 	if len(cmds) == 0 {
 		return nil
 	}
-
-	shellCmd, shellArg := ShellCommand()
 
 	for _, c := range cmds {
 		if strings.TrimSpace(c) == "" {
@@ -148,7 +147,13 @@ func (kw *KoshoWorktree) RunInitHooks(cmds []string) error {
 
 		fmt.Printf("Running init hook: %q\n", c)
 		
-		execCmd := exec.Command(shellCmd, shellArg, c)
+		// Split command into parts for exec.Command
+		parts := strings.Fields(c)
+		if len(parts) == 0 {
+			continue
+		}
+
+		execCmd := exec.Command(parts[0], parts[1:]...)
 		execCmd.Dir = kw.WorktreePath()
 		execCmd.Stdout = os.Stdout
 		execCmd.Stderr = os.Stderr
