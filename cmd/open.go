@@ -88,10 +88,10 @@ If a command is provided after --, runs that command instead.`,
 }
 
 func createWorktree(name string, kw *internal.KoshoWorktree, spec internal.BranchSpec, settings internal.Settings) error {
-	// Ensure .kosho is in .gitignore
-	err := internal.EnsureGitIgnored("/.kosho**")
+	// Ensure .kosho/.gitignore is set up properly
+	err := internal.EnsureKoshoGitIgnore()
 	if err != nil {
-		return fmt.Errorf("failed to update .gitignore: %w", err)
+		return fmt.Errorf("failed to setup .kosho/.gitignore: %w", err)
 	}
 
 	fmt.Printf("Creating worktree '%s' in %s\n", name, kw.WorktreePath())
@@ -104,8 +104,8 @@ func createWorktree(name string, kw *internal.KoshoWorktree, spec internal.Branc
 
 	fmt.Printf("Worktree created successfully at %s\n", kw.WorktreePath())
 
-	// Run initialization hooks
-	if err := kw.RunInitHooks(settings.WorktreeInit); err != nil {
+	// Run post-create hook if it exists
+	if err := kw.RunPostCreateHook(settings.HooksDir); err != nil {
 		// Remove partially-initialized worktree to keep repo clean
 		_ = kw.Remove(true)
 		return err

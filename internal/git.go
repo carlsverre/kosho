@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -38,35 +37,34 @@ func FindGitRoot() (string, error) {
 	return gitRoot, nil
 }
 
-func EnsureGitIgnored(glob string) error {
+// EnsureKoshoGitIgnore creates a .gitignore file in the .kosho directory 
+// to ignore worktrees while allowing hooks to be committed
+func EnsureKoshoGitIgnore() error {
 	repoRoot, err := FindGitRoot()
 	if err != nil {
 		return fmt.Errorf("failed to find git repository: %w", err)
 	}
-	gitignorePath := filepath.Join(repoRoot, ".gitignore")
+	
+	koshoDir := filepath.Join(repoRoot, ".kosho")
+	gitignorePath := filepath.Join(koshoDir, ".gitignore")
 
-	// Check if .gitignore exists and if /.kosho is already in it
-	if file, err := os.Open(gitignorePath); err == nil {
-		defer func() { _ = file.Close() }()
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			line := strings.TrimSpace(scanner.Text())
-			if line == glob {
-				return nil // Already present
-			}
-		}
+	// Create .kosho directory if it doesn't exist
+	if err := os.MkdirAll(koshoDir, 0755); err != nil {
+		return fmt.Errorf("failed to create .kosho directory: %w", err)
 	}
 
-	// Update .gitignore
-	file, err := os.OpenFile(gitignorePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open .gitignore: %w", err)
-	}
-	defer func() { _ = file.Close() }()
+	// Content for .kosho/.gitignore
+	gitignoreContent := `# Ignore worktree directories
+*
+# But keep hooks and this gitignore file
+!_hooks/
+!_hooks/**
+!.gitignore
+`
 
-	_, err = fmt.Fprintf(file, "%s\n", glob)
-	if err != nil {
-		return fmt.Errorf("failed to write to .gitignore: %w", err)
+	// Write the .gitignore file
+	if err := os.WriteFile(gitignorePath, []byte(gitignoreContent), 0644); err != nil {
+		return fmt.Errorf("failed to write .kosho/.gitignore: %w", err)
 	}
 
 	return nil

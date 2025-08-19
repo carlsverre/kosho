@@ -133,37 +133,44 @@ func (kw *KoshoWorktree) RunCommand(command []string) error {
 	return cmd.Run()
 }
 
-// RunInitHooks executes a series of initialization commands in the worktree directory.
-// Like git hooks, commands are executed directly using shell parsing.
-func (kw *KoshoWorktree) RunInitHooks(cmds []string) error {
-	if len(cmds) == 0 {
-		return nil
+// RunPostCreateHook executes the post-create hook script if it exists.
+func (kw *KoshoWorktree) RunPostCreateHook(hooksDir string) error {
+	hookPath := filepath.Join(hooksDir, "post-create")
+	
+	// Check if hook exists
+	if _, err := os.Stat(hookPath); os.IsNotExist(err) {
+		return nil // No hook to run
 	}
-
-	for _, c := range cmds {
-		if strings.TrimSpace(c) == "" {
-			continue // Skip empty commands
-		}
-
-		fmt.Printf("Running init hook: %q\n", c)
-		
-		// Split command into parts for exec.Command
-		parts := strings.Fields(c)
-		if len(parts) == 0 {
-			continue
-		}
-
-		execCmd := exec.Command(parts[0], parts[1:]...)
-		execCmd.Dir = kw.WorktreePath()
-		execCmd.Stdout = os.Stdout
-		execCmd.Stderr = os.Stderr
-		execCmd.Stdin = os.Stdin
-
-		if err := execCmd.Run(); err != nil {
-			return fmt.Errorf("init hook %q failed: %w", c, err)
-		}
+	
+	// Check if hook is executable
+	info, err := os.Stat(hookPath)
+	if err != nil {
+		return fmt.Errorf("failed to check hook permissions: %w", err)
 	}
-
+	
+	if info.Mode()&0111 == 0 {
+		return fmt.Errorf("hook %q is not executable", hookPath)
+	}
+	
+	fmt.Printf("Running post-create hook: %s\n", hookPath)
+	
+	// Execute the hook in the worktree directory
+	execCmd := exec.Command(hookPath)
+	execCmd.Dir = kw.WorktreePath()
+	execCmd.Stdout = os.Stdout
+	execCmd.Stderr = os.Stderr
+	execCmd.Stdin = os.Stdin
+	
+	// Set some helpful environment variables
+	execCmd.Env = append(os.Environ(),
+		fmt.Sprintf("KOSHO_WORKTREE_NAME=%s", kw.WorktreeName),
+		fmt.Sprintf("KOSHO_WORKTREE_PATH=%s", kw.WorktreePath()),
+	)
+	
+	if err := execCmd.Run(); err != nil {
+		return fmt.Errorf("post-create hook failed: %w", err)
+	}
+	
 	return nil
 }
 

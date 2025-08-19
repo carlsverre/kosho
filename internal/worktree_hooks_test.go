@@ -8,144 +8,208 @@ import (
 	"testing"
 )
 
-func TestRunInitHooks_EmptyCommands(t *testing.T) {
+func TestRunPostCreateHook_NoHookFile(t *testing.T) {
 	tempDir, cleanup := setupTempWorktree(t)
 	defer cleanup()
 
 	kw := NewKoshoWorktree(tempDir, "test-worktree")
+	hooksDir := filepath.Join(tempDir, ".kosho", "_hooks")
 
-	// Test with nil slice
-	err := kw.RunInitHooks(nil)
+	// Test with non-existent hooks directory
+	err := kw.RunPostCreateHook(hooksDir)
 	if err != nil {
-		t.Errorf("RunInitHooks with nil commands should return nil, got: %v", err)
+		t.Errorf("RunPostCreateHook with no hooks directory should return nil, got: %v", err)
 	}
 
-	// Test with empty slice
-	err = kw.RunInitHooks([]string{})
-	if err != nil {
-		t.Errorf("RunInitHooks with empty commands should return nil, got: %v", err)
+	// Create hooks directory but no post-create script
+	if err := os.MkdirAll(hooksDir, 0755); err != nil {
+		t.Fatalf("Failed to create hooks directory: %v", err)
 	}
 
-	// Test with slice containing only empty strings
-	err = kw.RunInitHooks([]string{"", "  ", "\t"})
+	err = kw.RunPostCreateHook(hooksDir)
 	if err != nil {
-		t.Errorf("RunInitHooks with only empty/whitespace commands should return nil, got: %v", err)
+		t.Errorf("RunPostCreateHook with no post-create script should return nil, got: %v", err)
 	}
 }
 
-func TestRunInitHooks_ValidCommands(t *testing.T) {
+func TestRunPostCreateHook_ValidHook(t *testing.T) {
 	tempDir, cleanup := setupTempWorktree(t)
 	defer cleanup()
 
 	kw := NewKoshoWorktree(tempDir, "test-worktree")
+	hooksDir := filepath.Join(tempDir, ".kosho", "_hooks")
 
-	// Test with echo command (simple binary execution)
-	err := kw.RunInitHooks([]string{"echo test message"})
-	if err != nil {
-		t.Errorf("RunInitHooks with valid echo command should succeed, got: %v", err)
+	// Create hooks directory
+	if err := os.MkdirAll(hooksDir, 0755); err != nil {
+		t.Fatalf("Failed to create hooks directory: %v", err)
 	}
 
-	// Test with touch command to create a file
-	testFile := filepath.Join(kw.WorktreePath(), "test-file.txt")
-	touchCmd := "touch test-file.txt"
-
-	err = kw.RunInitHooks([]string{touchCmd})
-	if err != nil {
-		t.Errorf("RunInitHooks with touch command should succeed, got: %v", err)
+	// Create a simple post-create hook script
+	hookScript := filepath.Join(hooksDir, "post-create")
+	var scriptContent string
+	if runtime.GOOS == "windows" {
+		scriptContent = `@echo off
+echo Post-create hook executed
+echo %KOSHO_WORKTREE_NAME% > hook-output.txt
+`
+	} else {
+		scriptContent = `#!/bin/bash
+echo "Post-create hook executed"
+echo "$KOSHO_WORKTREE_NAME" > hook-output.txt
+`
 	}
 
-	// Verify the file was created (skip on Windows since touch might not be available)
-	if runtime.GOOS != "windows" {
-		if _, err := os.Stat(testFile); os.IsNotExist(err) {
-			t.Errorf("Expected file %s to be created by touch command", testFile)
-		}
+	if err := os.WriteFile(hookScript, []byte(scriptContent), 0755); err != nil {
+		t.Fatalf("Failed to create hook script: %v", err)
+	}
+
+	// Run the hook
+	err := kw.RunPostCreateHook(hooksDir)
+	if err != nil {
+		t.Errorf("RunPostCreateHook with valid script should succeed, got: %v", err)
+	}
+
+	// Verify the hook created the expected output file
+	outputFile := filepath.Join(kw.WorktreePath(), "hook-output.txt")
+	content, err := os.ReadFile(outputFile)
+	if err != nil {
+		t.Errorf("Expected hook to create output file, got error: %v", err)
+	}
+
+	expectedContent := "test-worktree"
+	if strings.TrimSpace(string(content)) != expectedContent {
+		t.Errorf("Expected hook output to contain %q, got %q", expectedContent, strings.TrimSpace(string(content)))
 	}
 }
 
-func TestRunInitHooks_FailingCommand(t *testing.T) {
+func TestRunPostCreateHook_NonExecutableHook(t *testing.T) {
 	tempDir, cleanup := setupTempWorktree(t)
 	defer cleanup()
 
 	kw := NewKoshoWorktree(tempDir, "test-worktree")
+	hooksDir := filepath.Join(tempDir, ".kosho", "_hooks")
 
-	// Test with command that always fails (nonexistent command)
-	failCmd := "nonexistent-command-12345"
+	// Create hooks directory
+	if err := os.MkdirAll(hooksDir, 0755); err != nil {
+		t.Fatalf("Failed to create hooks directory: %v", err)
+	}
 
-	err := kw.RunInitHooks([]string{failCmd})
+	// Create a non-executable post-create hook
+	hookScript := filepath.Join(hooksDir, "post-create")
+	scriptContent := "#!/bin/bash\necho 'This should not run'\n"
+
+	if err := os.WriteFile(hookScript, []byte(scriptContent), 0644); err != nil {
+		t.Fatalf("Failed to create hook script: %v", err)
+	}
+
+	// Run the hook - should fail due to lack of execute permission
+	err := kw.RunPostCreateHook(hooksDir)
 	if err == nil {
-		t.Error("RunInitHooks with failing command should return an error")
+		t.Error("RunPostCreateHook with non-executable script should return an error")
 	}
 
-	// Check that error message contains the command
-	if !strings.Contains(err.Error(), "init hook") || !strings.Contains(err.Error(), "failed") {
-		t.Errorf("Error message should mention init hook failure, got: %v", err)
+	if !strings.Contains(err.Error(), "not executable") {
+		t.Errorf("Error should mention non-executable hook, got: %v", err)
 	}
 }
 
-func TestRunInitHooks_MultipleCommands_StopOnFailure(t *testing.T) {
+func TestRunPostCreateHook_FailingHook(t *testing.T) {
 	tempDir, cleanup := setupTempWorktree(t)
 	defer cleanup()
 
 	kw := NewKoshoWorktree(tempDir, "test-worktree")
+	hooksDir := filepath.Join(tempDir, ".kosho", "_hooks")
 
-	// Create commands: touch file1, fail, touch file2
-	file1 := filepath.Join(kw.WorktreePath(), "file1.txt")
-	file2 := filepath.Join(kw.WorktreePath(), "file2.txt")
+	// Create hooks directory
+	if err := os.MkdirAll(hooksDir, 0755); err != nil {
+		t.Fatalf("Failed to create hooks directory: %v", err)
+	}
 
-	touchCmd1 := "touch file1.txt"
-	failCmd := "nonexistent-command-12345"
-	touchCmd2 := "touch file2.txt"
+	// Create a hook script that exits with error
+	hookScript := filepath.Join(hooksDir, "post-create")
+	var scriptContent string
+	if runtime.GOOS == "windows" {
+		scriptContent = `@echo off
+echo This hook will fail
+exit 1
+`
+	} else {
+		scriptContent = `#!/bin/bash
+echo "This hook will fail"
+exit 1
+`
+	}
 
-	commands := []string{touchCmd1, failCmd, touchCmd2}
-	err := kw.RunInitHooks(commands)
+	if err := os.WriteFile(hookScript, []byte(scriptContent), 0755); err != nil {
+		t.Fatalf("Failed to create hook script: %v", err)
+	}
 
-	// Should return an error
+	// Run the hook - should fail
+	err := kw.RunPostCreateHook(hooksDir)
 	if err == nil {
-		t.Error("RunInitHooks should return error when a command fails")
+		t.Error("RunPostCreateHook with failing script should return an error")
 	}
 
-	// Skip file checks on Windows since touch might not be available
-	if runtime.GOOS != "windows" {
-		// First file should exist (command executed before failure)
-		if _, err := os.Stat(file1); os.IsNotExist(err) {
-			t.Error("First command should have been executed successfully")
-		}
-
-		// Second file should not exist (command after failure should not execute)
-		if _, err := os.Stat(file2); !os.IsNotExist(err) {
-			t.Error("Commands after failure should not be executed")
-		}
+	if !strings.Contains(err.Error(), "post-create hook failed") {
+		t.Errorf("Error should mention post-create hook failure, got: %v", err)
 	}
 }
 
-func TestRunInitHooks_MultipleValidCommands(t *testing.T) {
+func TestRunPostCreateHook_EnvironmentVariables(t *testing.T) {
 	tempDir, cleanup := setupTempWorktree(t)
 	defer cleanup()
 
 	kw := NewKoshoWorktree(tempDir, "test-worktree")
+	hooksDir := filepath.Join(tempDir, ".kosho", "_hooks")
 
-	// Create multiple successful commands (using echo which is cross-platform)
-	commands := []string{"echo first command", "echo second command"}
-	err := kw.RunInitHooks(commands)
-
-	// Should succeed
-	if err != nil {
-		t.Errorf("RunInitHooks with all valid commands should succeed, got: %v", err)
+	// Create hooks directory
+	if err := os.MkdirAll(hooksDir, 0755); err != nil {
+		t.Fatalf("Failed to create hooks directory: %v", err)
 	}
-}
 
+	// Create a hook script that uses environment variables
+	hookScript := filepath.Join(hooksDir, "post-create")
+	var scriptContent string
+	if runtime.GOOS == "windows" {
+		scriptContent = `@echo off
+echo %KOSHO_WORKTREE_NAME% > name.txt
+echo %KOSHO_WORKTREE_PATH% > path.txt
+`
+	} else {
+		scriptContent = `#!/bin/bash
+echo "$KOSHO_WORKTREE_NAME" > name.txt
+echo "$KOSHO_WORKTREE_PATH" > path.txt
+`
+	}
 
+	if err := os.WriteFile(hookScript, []byte(scriptContent), 0755); err != nil {
+		t.Fatalf("Failed to create hook script: %v", err)
+	}
 
-func TestRunInitHooks_WorkingDirectory(t *testing.T) {
-	tempDir, cleanup := setupTempWorktree(t)
-	defer cleanup()
-
-	kw := NewKoshoWorktree(tempDir, "test-worktree")
-
-	// Simple test - just verify commands run without shell-specific syntax
-	err := kw.RunInitHooks([]string{"echo working directory test"})
+	// Run the hook
+	err := kw.RunPostCreateHook(hooksDir)
 	if err != nil {
-		t.Errorf("RunInitHooks should succeed, got: %v", err)
+		t.Errorf("RunPostCreateHook should succeed, got: %v", err)
+	}
+
+	// Verify environment variables were passed correctly
+	nameFile := filepath.Join(kw.WorktreePath(), "name.txt")
+	nameContent, err := os.ReadFile(nameFile)
+	if err != nil {
+		t.Errorf("Expected hook to create name.txt, got error: %v", err)
+	}
+	if strings.TrimSpace(string(nameContent)) != "test-worktree" {
+		t.Errorf("Expected KOSHO_WORKTREE_NAME to be 'test-worktree', got %q", strings.TrimSpace(string(nameContent)))
+	}
+
+	pathFile := filepath.Join(kw.WorktreePath(), "path.txt")
+	pathContent, err := os.ReadFile(pathFile)
+	if err != nil {
+		t.Errorf("Expected hook to create path.txt, got error: %v", err)
+	}
+	expectedPath := kw.WorktreePath()
+	if strings.TrimSpace(string(pathContent)) != expectedPath {
+		t.Errorf("Expected KOSHO_WORKTREE_PATH to be %q, got %q", expectedPath, strings.TrimSpace(string(pathContent)))
 	}
 }
 
