@@ -133,6 +133,35 @@ func (kw *KoshoWorktree) RunCommand(command []string) error {
 	return cmd.Run()
 }
 
+// RunInitHooks executes a series of initialization commands in the worktree directory
+func (kw *KoshoWorktree) RunInitHooks(cmds []string) error {
+	if len(cmds) == 0 {
+		return nil
+	}
+
+	shellCmd, shellArg := ShellCommand()
+
+	for _, c := range cmds {
+		if strings.TrimSpace(c) == "" {
+			continue // Skip empty commands
+		}
+
+		fmt.Printf("Running init hook: %q\n", c)
+		
+		execCmd := exec.Command(shellCmd, shellArg, c)
+		execCmd.Dir = kw.WorktreePath()
+		execCmd.Stdout = os.Stdout
+		execCmd.Stderr = os.Stderr
+		execCmd.Stdin = os.Stdin
+
+		if err := execCmd.Run(); err != nil {
+			return fmt.Errorf("init hook %q failed: %w", c, err)
+		}
+	}
+
+	return nil
+}
+
 // GitRef returns the current git reference (branch name or commit hash)
 func (kw *KoshoWorktree) GitRef() (string, error) {
 	// Try to get current branch name first

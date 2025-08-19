@@ -52,6 +52,12 @@ If a command is provided after --, runs that command instead.`,
 
 		kw := internal.NewKoshoWorktree(repoRoot, name)
 
+		// Load settings before checking if worktree exists
+		settings, err := internal.LoadSettings(repoRoot)
+		if err != nil {
+			return fmt.Errorf("failed to load settings: %w", err)
+		}
+
 		// Check if worktree already exists
 		if _, err := os.Stat(kw.WorktreePath()); os.IsNotExist(err) {
 			// Create branch specification
@@ -68,7 +74,7 @@ If a command is provided after --, runs that command instead.`,
 			}
 
 			// Create the worktree
-			err := createWorktree(name, kw, spec)
+			err := createWorktree(name, kw, spec, settings)
 			if err != nil {
 				return err
 			}
@@ -81,7 +87,7 @@ If a command is provided after --, runs that command instead.`,
 	},
 }
 
-func createWorktree(name string, kw *internal.KoshoWorktree, spec internal.BranchSpec) error {
+func createWorktree(name string, kw *internal.KoshoWorktree, spec internal.BranchSpec, settings internal.Settings) error {
 	// Ensure .kosho is in .gitignore
 	err := internal.EnsureGitIgnored("/.kosho**")
 	if err != nil {
@@ -97,6 +103,14 @@ func createWorktree(name string, kw *internal.KoshoWorktree, spec internal.Branc
 	}
 
 	fmt.Printf("Worktree created successfully at %s\n", kw.WorktreePath())
+
+	// Run initialization hooks
+	if err := kw.RunInitHooks(settings.WorktreeInit); err != nil {
+		// Remove partially-initialized worktree to keep repo clean
+		_ = kw.Remove(true)
+		return err
+	}
+
 	return nil
 }
 
