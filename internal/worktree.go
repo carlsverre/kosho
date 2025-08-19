@@ -133,6 +133,47 @@ func (kw *KoshoWorktree) RunCommand(command []string) error {
 	return cmd.Run()
 }
 
+// RunPostCreateHook executes the post-create hook script if it exists.
+func (kw *KoshoWorktree) RunPostCreateHook(hooksDir string) error {
+	hookPath := filepath.Join(hooksDir, "post-create")
+	
+	// Check if hook exists
+	if _, err := os.Stat(hookPath); os.IsNotExist(err) {
+		return nil // No hook to run
+	}
+	
+	// Check if hook is executable
+	info, err := os.Stat(hookPath)
+	if err != nil {
+		return fmt.Errorf("failed to check hook permissions: %w", err)
+	}
+	
+	if info.Mode()&0111 == 0 {
+		return fmt.Errorf("kosho: hook %q is not executable", hookPath)
+	}
+	
+	fmt.Printf("Running post-create hook: %s\n", hookPath)
+	
+	// Execute the hook in the worktree directory
+	execCmd := exec.Command(hookPath)
+	execCmd.Dir = kw.WorktreePath()
+	execCmd.Stdout = os.Stdout
+	execCmd.Stderr = os.Stderr
+	execCmd.Stdin = os.Stdin
+	
+	// Set some helpful environment variables
+	execCmd.Env = append(os.Environ(),
+		fmt.Sprintf("KOSHO_WORKTREE_NAME=%s", kw.WorktreeName),
+		fmt.Sprintf("KOSHO_WORKTREE_PATH=%s", kw.WorktreePath()),
+	)
+	
+	if err := execCmd.Run(); err != nil {
+		return fmt.Errorf("kosho: post-create hook failed: %w", err)
+	}
+	
+	return nil
+}
+
 // GitRef returns the current git reference (branch name or commit hash)
 func (kw *KoshoWorktree) GitRef() (string, error) {
 	// Try to get current branch name first

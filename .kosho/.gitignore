@@ -1,0 +1,6 @@
+# Ignore worktree directories
+*
+# But keep hooks and this gitignore file
+!_hooks/
+!_hooks/**
+!.gitignore

@@ -52,6 +52,12 @@ If a command is provided after --, runs that command instead.`,
 
 		kw := internal.NewKoshoWorktree(repoRoot, name)
 
+		// Load settings before checking if worktree exists
+		settings, err := internal.LoadSettings(repoRoot)
+		if err != nil {
+			return fmt.Errorf("failed to load settings: %w", err)
+		}
+
 		// Check if worktree already exists
 		if _, err := os.Stat(kw.WorktreePath()); os.IsNotExist(err) {
 			// Create branch specification
@@ -68,7 +74,7 @@ If a command is provided after --, runs that command instead.`,
 			}
 
 			// Create the worktree
-			err := createWorktree(name, kw, spec)
+			err := createWorktree(name, kw, spec, settings)
 			if err != nil {
 				return err
 			}
@@ -81,11 +87,11 @@ If a command is provided after --, runs that command instead.`,
 	},
 }
 
-func createWorktree(name string, kw *internal.KoshoWorktree, spec internal.BranchSpec) error {
-	// Ensure .kosho is in .gitignore
-	err := internal.EnsureGitIgnored("/.kosho**")
+func createWorktree(name string, kw *internal.KoshoWorktree, spec internal.BranchSpec, settings internal.Settings) error {
+	// Ensure .kosho/.gitignore is set up properly
+	err := internal.EnsureKoshoGitIgnore()
 	if err != nil {
-		return fmt.Errorf("failed to update .gitignore: %w", err)
+		return fmt.Errorf("kosho: failed to setup .kosho/.gitignore: %w", err)
 	}
 
 	fmt.Printf("Creating worktree '%s' in %s\n", name, kw.WorktreePath())
@@ -93,10 +99,18 @@ func createWorktree(name string, kw *internal.KoshoWorktree, spec internal.Branc
 	// Create the worktree
 	err = kw.CreateIfNotExists(spec)
 	if err != nil {
-		return fmt.Errorf("failed to create worktree: %w", err)
+		return fmt.Errorf("kosho: failed to create worktree: %w", err)
 	}
 
 	fmt.Printf("Worktree created successfully at %s\n", kw.WorktreePath())
+
+	// Run post-create hook if it exists
+	if err := kw.RunPostCreateHook(settings.HooksDir); err != nil {
+		// Remove partially-initialized worktree to keep repo clean
+		_ = kw.Remove(true)
+		return err
+	}
+
 	return nil
 }
 
