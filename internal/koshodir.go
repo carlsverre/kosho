@@ -78,7 +78,10 @@ func SetupKoshoDir() error {
 
 	// Recursively create .kosho/kosho_config/hooks directory structure
 	hooksDir := filepath.Join(repoRoot, KOSHO_HOOKS_DIR)
-	os.MkdirAll(hooksDir, 0755)
+	err = os.MkdirAll(hooksDir, 0755)
+	if err != nil {
+		return fmt.Errorf("failed to create hooks directory %s: %w", hooksDir, err)
+	}
 
 	// Initialize the hooks directory with samples
 	samples, err := KoshoHooks.ReadDir("sample-hooks")
