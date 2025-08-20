@@ -2,6 +2,7 @@ package internal
 
 import (
 	"bufio"
+	"embed"
 	"fmt"
 	"os"
 	"os/exec"
@@ -32,12 +33,19 @@ const (
 )
 
 var (
-	KoshoGitIgnore = []byte(dedent.Dedent(`
-	    *
+	//go:embed sample-hooks
+	KoshoHooks embed.FS
+
+	KoshoHooksGitIgnore = []byte(strings.TrimLeft(dedent.Dedent(`
+		*.sample
+	`), "\n"))
+
+	KoshoGitIgnore = []byte(strings.TrimLeft(dedent.Dedent(`
+		*
 		!/.gitignore
 		!/kosho_config/
 		!/kosho_config/**
-	`))
+	`), "\n"))
 )
 
 func SetupKoshoDir() error {
@@ -68,19 +76,42 @@ func SetupKoshoDir() error {
 		}
 	}
 
-	// Create the .kosho directory if it doesn't exist
-	koshoDir := filepath.Join(repoRoot, KOSHO_DIR)
-	if _, err := os.Stat(koshoDir); os.IsNotExist(err) {
-		if err := os.Mkdir(koshoDir, 0755); err != nil {
-			return fmt.Errorf("failed to create .kosho directory: %w", err)
+	// Recursively create .kosho/kosho_config/hooks directory structure
+	hooksDir := filepath.Join(repoRoot, KOSHO_HOOKS_DIR)
+	os.MkdirAll(hooksDir, 0755)
+
+	// Initialize the hooks directory with samples
+	samples, err := KoshoHooks.ReadDir("sample-hooks")
+	if err != nil {
+		return fmt.Errorf("failed to read sample hooks directory: %w", err)
+	}
+	for _, sample := range samples {
+		srcPath := filepath.Join("sample-hooks", sample.Name())
+		destPath := filepath.Join(hooksDir, sample.Name())
+		// Read the sample hook file
+		data, err := KoshoHooks.ReadFile(srcPath)
+		if err != nil {
+			return fmt.Errorf("failed to read sample hook file %s: %w", srcPath, err)
+		}
+		// Write the sample hook file to the hooks directory
+		if err := os.WriteFile(destPath, data, 0755); err != nil {
+			return fmt.Errorf("failed to write sample hook file %s: %w", destPath, err)
+		}
+	}
+
+	// Create .kosho/kosho_config/hooks/.gitignore if it doesn't exist
+	koshoHooksGitIgnorePath := filepath.Join(hooksDir, ".gitignore")
+	if _, err := os.Stat(koshoHooksGitIgnorePath); os.IsNotExist(err) {
+		if err := os.WriteFile(koshoHooksGitIgnorePath, KoshoHooksGitIgnore, 0644); err != nil {
+			return fmt.Errorf("failed to create %s: %w", koshoHooksGitIgnorePath, err)
 		}
 	}
 
 	// Create .kosho/.gitignore if it doesn't exist
-	koshoGitIgnorePath := filepath.Join(koshoDir, ".gitignore")
+	koshoGitIgnorePath := filepath.Join(repoRoot, KOSHO_DIR, ".gitignore")
 	if _, err := os.Stat(koshoGitIgnorePath); os.IsNotExist(err) {
 		if err := os.WriteFile(koshoGitIgnorePath, KoshoGitIgnore, 0644); err != nil {
-			return fmt.Errorf("failed to create .kosho/.gitignore: %w", err)
+			return fmt.Errorf("failed to create %s: %w", koshoGitIgnorePath, err)
 		}
 	}
 

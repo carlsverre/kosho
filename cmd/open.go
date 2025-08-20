@@ -81,6 +81,9 @@ If a command is provided after --, runs that command instead.`,
 
 			// Run the create hook if it exists
 			if err := internal.RunKoshoHook(internal.HOOK_CREATE, kw); err != nil {
+				if remove_err := kw.Remove(true); remove_err != nil {
+					return fmt.Errorf("failed to remove worktree after create hook failure: %w", remove_err)
+				}
 				return fmt.Errorf("failed to run create hook: %w", err)
 			}
 		} else if err != nil {
