@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"syscall"
 
 	"github.com/carlsverre/kosho/internal"
@@ -39,6 +40,11 @@ If a command is provided after --, runs that command instead.`,
 		args, command := internal.SplitArgs(cmd, args)
 		name := args[0]
 
+		// reserve worktree names starting with "kosho_"
+		if strings.HasPrefix(name, "kosho_") {
+			return fmt.Errorf("worktree names cannot start with 'kosho_'")
+		}
+
 		var commitish string
 		if len(args) > 1 {
 			commitish = args[1]
@@ -72,8 +78,18 @@ If a command is provided after --, runs that command instead.`,
 			if err != nil {
 				return err
 			}
+
+			// Run the create hook if it exists
+			if err := internal.RunKoshoHook(internal.HOOK_CREATE, kw); err != nil {
+				return fmt.Errorf("failed to run create hook: %w", err)
+			}
 		} else if err != nil {
 			return fmt.Errorf("failed to check worktree path: %w", err)
+		}
+
+		// Run the open hook if it exists
+		if err := internal.RunKoshoHook(internal.HOOK_OPEN, kw); err != nil {
+			return fmt.Errorf("failed to run open hook: %w", err)
 		}
 
 		// Change to worktree directory and run shell or command

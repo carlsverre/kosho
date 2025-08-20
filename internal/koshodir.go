@@ -87,7 +87,7 @@ func SetupKoshoDir() error {
 	return nil
 }
 
-func RunKoshoHook(hook KoshoHook) error {
+func RunKoshoHook(hook KoshoHook, worktree *KoshoWorktree) error {
 	repoRoot, err := FindGitRoot()
 	if err != nil {
 		return fmt.Errorf("failed to find git repository: %w", err)
@@ -102,11 +102,17 @@ func RunKoshoHook(hook KoshoHook) error {
 		return fmt.Errorf("failed to stat hook file %s: %w", hookFile, err)
 	}
 
-	// try to run the hook
+	// try to run the hook in the worktree directory
 	cmd := exec.Command(hookFile)
-	cmd.Dir = repoRoot
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("error running hook %s: %w\nOutput: %s", hook, err, output)
+	cmd.Dir = worktree.WorktreePath()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = append(cmd.Env, "KOSHO_HOOK="+string(hook))
+	cmd.Env = append(cmd.Env, "KOSHO_WORKTREE="+worktree.WorktreeName)
+	cmd.Env = append(cmd.Env, "KOSHO_REPO="+repoRoot)
+
+	if err = cmd.Run(); err != nil {
+		return fmt.Errorf("failed to run hook %s: %w", hook, err)
 	}
 	return nil
 }

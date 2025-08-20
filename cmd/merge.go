@@ -62,6 +62,11 @@ Use -m/--message to commit changes in the worktree before merging.`,
 			return fmt.Errorf("worktree `%s` not found", worktree)
 		}
 
+		// Run the merge hook if it exists
+		if err := internal.RunKoshoHook(internal.HOOK_MERGE, kw); err != nil {
+			return fmt.Errorf("failed to run merge hook: %w", err)
+		}
+
 		// Handle pre-merge commit if message is provided
 		if commitMessage != "" {
 			// Check for untracked files

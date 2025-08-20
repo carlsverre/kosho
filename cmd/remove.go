@@ -34,6 +34,11 @@ If the worktree is dirty, use --force to continue.`,
 			return fmt.Errorf("worktree '%s' does not exist", name)
 		}
 
+		// Run the remove if it exists
+		if err := internal.RunKoshoHook(internal.HOOK_REMOVE, kw); err != nil {
+			return fmt.Errorf("failed to run remove hook: %w", err)
+		}
+
 		// Check if worktree is dirty (has uncommitted changes)
 		if !forceFlag {
 			isDirty, err := kw.IsDirty()
