@@ -185,7 +185,6 @@ Kosho automatically creates sample hook files (`.sample` extension) in `.kosho/k
 ```bash
 # Enable the create hook
 mv .kosho/kosho_config/hooks/create.sample .kosho/kosho_config/hooks/create
-chmod +x .kosho/kosho_config/hooks/create
 ```
 
 ### Environment Variables
@@ -196,16 +195,14 @@ Hooks receive these environment variables:
 - `$KOSHO_WORKTREE`: Name of the worktree being operated on
 - `$KOSHO_REPO`: Path to the repository root
 
-**Example hook:**
+**Example create hook (`.kosho/kosho_config/hooks/create`):**
 
 ```bash
 #!/bin/sh
-echo "Running $KOSHO_HOOK hook for worktree: $KOSHO_WORKTREE"
+echo "Setting up new worktree: $KOSHO_WORKTREE"
 
 # Install dependencies when creating a new worktree
-if [ "$KOSHO_HOOK" = "create" ]; then
-    npm install
-fi
+npm install
 ```
 
 ## How It Works
