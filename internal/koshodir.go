@@ -4,10 +4,31 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/lithammer/dedent"
+)
+
+type KoshoHook string
+
+const (
+	// Runs after a worktree is created
+	HOOK_CREATE KoshoHook = "create"
+
+	// Runs before opening a worktree
+	HOOK_OPEN KoshoHook = "open"
+
+	// Runs while merging a worktree, before validation
+	HOOK_MERGE KoshoHook = "merge"
+
+	// Runs before removing a worktree
+	HOOK_REMOVE KoshoHook = "remove"
+
+	KOSHO_DIR        = ".kosho"
+	KOSHO_CONFIG_DIR = KOSHO_DIR + "/kosho_config"
+	KOSHO_HOOKS_DIR  = KOSHO_CONFIG_DIR + "/hooks"
 )
 
 var (
@@ -26,6 +47,7 @@ func SetupKoshoDir() error {
 	}
 
 	// if the root .gitignore contains .kosho, remove it
+	// this is an upgrade step from an earlier Kosho version
 	rootGitIgnorePath := filepath.Join(repoRoot, ".gitignore")
 	if file, err := os.Open(rootGitIgnorePath); err == nil {
 		defer func() { _ = file.Close() }()
@@ -47,7 +69,7 @@ func SetupKoshoDir() error {
 	}
 
 	// Create the .kosho directory if it doesn't exist
-	koshoDir := filepath.Join(repoRoot, ".kosho")
+	koshoDir := filepath.Join(repoRoot, KOSHO_DIR)
 	if _, err := os.Stat(koshoDir); os.IsNotExist(err) {
 		if err := os.Mkdir(koshoDir, 0755); err != nil {
 			return fmt.Errorf("failed to create .kosho directory: %w", err)
@@ -62,5 +84,29 @@ func SetupKoshoDir() error {
 		}
 	}
 
+	return nil
+}
+
+func RunKoshoHook(hook KoshoHook) error {
+	repoRoot, err := FindGitRoot()
+	if err != nil {
+		return fmt.Errorf("failed to find git repository: %w", err)
+	}
+
+	hookFile := filepath.Join(repoRoot, KOSHO_HOOKS_DIR, string(hook))
+
+	// abort if hook does not exist
+	if _, err := os.Stat(hookFile); os.IsNotExist(err) {
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("failed to stat hook file %s: %w", hookFile, err)
+	}
+
+	// try to run the hook
+	cmd := exec.Command(hookFile)
+	cmd.Dir = repoRoot
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("error running hook %s: %w\nOutput: %s", hook, err, output)
+	}
 	return nil
 }
