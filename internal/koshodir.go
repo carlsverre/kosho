@@ -143,7 +143,11 @@ func RunKoshoHook(hook KoshoHook, worktree *KoshoWorktree) error {
 	cmd.Stderr = os.Stderr
 	cmd.Env = append(cmd.Env, "KOSHO_HOOK="+string(hook))
 	cmd.Env = append(cmd.Env, "KOSHO_WORKTREE="+worktree.WorktreeName)
-	cmd.Env = append(cmd.Env, "KOSHO_REPO="+repoRoot)
+	cmd.Env = append(os.Environ(),
+		"KOSHO_HOOK="+string(hook),
+		"KOSHO_WORKTREE="+worktree.WorktreeName,
+		"KOSHO_REPO="+repoRoot,
+	)
 
 	if err = cmd.Run(); err != nil {
 		return fmt.Errorf("failed to run hook %s: %w", hook, err)
