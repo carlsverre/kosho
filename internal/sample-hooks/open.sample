@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# The "open" hook runs immediately before opening a worktree during the
+# execution of `kosho open`.
+# 
+# If this hook fails, the open operation will be aborted.
+#
+# To enable this hook, rename this file to "open".
+
+echo "Running $KOSHO_HOOK hook for worktree: $KOSHO_WORKTREE"
+
+# the hook is run in the worktree directory
+echo "Hook PWD: $PWD"

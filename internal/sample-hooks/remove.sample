@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# The "remove" hook runs immediately before validating there are no uncommitted
+# changes during the execution of `kosho remove`.
+# 
+# If this hook fails, the remove operation will be aborted.
+#
+# To enable this hook, rename this file to "remove".
+
+echo "Running $KOSHO_HOOK hook for worktree: $KOSHO_WORKTREE"
+
+# the hook is run in the worktree directory
+echo "Hook PWD: $PWD"

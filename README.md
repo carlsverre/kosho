@@ -167,6 +167,44 @@ kosho merge feature-auth -- --no-ff -m "Add authentication feature"
 
 Cleans up any dangling worktree references using `git worktree prune`.
 
+## Hooks
+
+Kosho supports hooks that run at specific points during worktree operations. Hooks are executable scripts stored in `.kosho/kosho_config/hooks/` and receive environment variables with context about the operation.
+
+### Available Hooks
+
+- **`create`**: Runs after a new worktree is created, before opening it
+- **`open`**: Runs before opening an existing worktree  
+- **`merge`**: Runs during merge operations, before validation
+- **`remove`**: Runs before removing a worktree, before validation
+
+### Enabling Hooks
+
+Kosho automatically creates sample hook files (`.sample` extension) in `.kosho/kosho_config/hooks/`. To enable a hook:
+
+```bash
+# Enable the create hook
+mv .kosho/kosho_config/hooks/create.sample .kosho/kosho_config/hooks/create
+```
+
+### Environment Variables
+
+Hooks receive these environment variables:
+
+- `$KOSHO_HOOK`: The hook type (`create`, `open`, `merge`, `remove`)
+- `$KOSHO_WORKTREE`: Name of the worktree being operated on
+- `$KOSHO_REPO`: Path to the repository root
+
+**Example create hook (`.kosho/kosho_config/hooks/create`):**
+
+```bash
+#!/bin/sh
+echo "Setting up new worktree: $KOSHO_WORKTREE"
+
+# Install dependencies when creating a new worktree
+npm install
+```
+
 ## How It Works
 
 Kosho manages [git worktree]s in a `.kosho/` directory at your repository root:
