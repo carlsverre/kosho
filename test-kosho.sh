@@ -42,7 +42,7 @@ docker build -t kosho-tester kosho-tester
 # Start Claude Code with instructions, parse output with jq
 docker run --rm -it \
   -v "$(pwd)/kosho:/usr/local/bin/kosho:ro" \
-  -v "$(pwd)/README.md:/README.md:ro" \
+  -v "$(pwd):/kosho:ro" \
   -v "$HOME/.claude/.credentials.json:/home/ubuntu/.claude/.credentials.json:ro" \
   --cap-add=NET_ADMIN \
   --cap-add=NET_RAW \
