@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,6 +8,7 @@ import (
 	"strings"
 )
 
+// FindGitRoot finds the root directory of the git repository, handling both regular repos and worktrees.
 func FindGitRoot() (string, error) {
 	// First check if we're in a worktree by examining the git directory
 	cmd := exec.Command("git", "rev-parse", "--git-dir")
@@ -58,34 +58,23 @@ func IsAncestor(repoPath, ancestorRef, descendantRef string) (bool, error) {
 // RemoveLinesFromGitIgnore removes lines containing the specified substring from a .gitignore file,
 // preserving the original formatting including trailing newlines. Only writes if changes are needed.
 func RemoveLinesFromGitIgnore(gitIgnorePath, substring string) error {
-	file, err := os.Open(gitIgnorePath)
-	if err != nil {
-		return err // File doesn't exist or can't be opened, nothing to do
-	}
-	defer func() { _ = file.Close() }()
-
 	// Read the entire file to preserve original format
-	content, err := os.ReadFile(gitIgnorePath)
+	originalContent, err := os.ReadFile(gitIgnorePath)
 	if err != nil {
-		return fmt.Errorf("error reading .gitignore: %w", err)
+		return err
 	}
 
-	originalContent := string(content)
-	hadTrailingNewline := strings.HasSuffix(originalContent, "\n")
+	// Process lines directly from the content
+	contentLines := strings.Split(string(originalContent), "\n")
 
-	scanner := bufio.NewScanner(file)
 	var lines []string
 	var foundMatch bool
-	for scanner.Scan() {
-		line := scanner.Text()
+	for _, line := range contentLines {
 		if strings.Contains(line, substring) {
 			foundMatch = true
 		} else {
 			lines = append(lines, line)
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("error reading .gitignore: %w", err)
 	}
 
 	// Only write if we found lines to remove
@@ -93,11 +82,8 @@ func RemoveLinesFromGitIgnore(gitIgnorePath, substring string) error {
 		return nil
 	}
 
-	// Rewrite .gitignore without the lines containing substring, preserving trailing newline
+	// Rewrite .gitignore
 	newContent := strings.Join(lines, "\n")
-	if hadTrailingNewline && len(lines) > 0 {
-		newContent += "\n"
-	}
 	if err := os.WriteFile(gitIgnorePath, []byte(newContent), 0644); err != nil {
 		return fmt.Errorf("failed to rewrite .gitignore: %w", err)
 	}

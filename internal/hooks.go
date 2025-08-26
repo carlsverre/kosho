@@ -49,6 +49,7 @@ func writeKoshoHookSamples(hookDir string) error {
 	return nil
 }
 
+// RunKoshoHook executes a kosho hook script if it exists, running it in the worktree directory.
 func RunKoshoHook(worktree *KoshoWorktree, hook KoshoHook) error {
 	hookFile := worktree.KoshoDir.HookPath(hook)
 
