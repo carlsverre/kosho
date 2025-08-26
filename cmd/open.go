@@ -12,8 +12,7 @@ import (
 )
 
 var (
-	branchFlag      string
-	resetBranchFlag string
+	branchFlag string
 )
 
 func checkOpenArgs(cmd *cobra.Command, args []string) error {
@@ -50,13 +49,12 @@ If a command is provided after --, runs that command instead.`,
 			commitish = args[1]
 		}
 
-		// Find git root
-		repoRoot, err := internal.FindGitRoot()
+		koshoDir, err := internal.NewKoshoDir()
 		if err != nil {
-			return fmt.Errorf("failed to find git repository: %w", err)
+			return fmt.Errorf("failed to load Kosho dir: %w", err)
 		}
 
-		kw := internal.NewKoshoWorktree(repoRoot, name)
+		kw := internal.NewKoshoWorktree(*koshoDir, name)
 
 		// Check if worktree already exists
 		if _, err := os.Stat(kw.WorktreePath()); os.IsNotExist(err) {
@@ -64,23 +62,16 @@ If a command is provided after --, runs that command instead.`,
 			spec := internal.BranchSpec{
 				BranchName: branchFlag,
 				Commitish:  commitish,
-				Reset:      false,
-			}
-
-			// If resetBranchFlag is set, use it instead and set Reset to true
-			if resetBranchFlag != "" {
-				spec.BranchName = resetBranchFlag
-				spec.Reset = true
 			}
 
 			// Create the worktree
-			err := createWorktree(name, kw, spec)
+			err := createWorktree(kw, spec)
 			if err != nil {
 				return err
 			}
 
 			// Run the create hook if it exists
-			if err := internal.RunKoshoHook(internal.HOOK_CREATE, kw); err != nil {
+			if err := internal.RunKoshoHook(kw, internal.HOOK_CREATE); err != nil {
 				if remove_err := kw.Remove(true); remove_err != nil {
 					return fmt.Errorf("failed to remove worktree after create hook failure: %w", remove_err)
 				}
@@ -91,7 +82,7 @@ If a command is provided after --, runs that command instead.`,
 		}
 
 		// Run the open hook if it exists
-		if err := internal.RunKoshoHook(internal.HOOK_OPEN, kw); err != nil {
+		if err := internal.RunKoshoHook(kw, internal.HOOK_OPEN); err != nil {
 			return fmt.Errorf("failed to run open hook: %w", err)
 		}
 
@@ -100,17 +91,11 @@ If a command is provided after --, runs that command instead.`,
 	},
 }
 
-func createWorktree(name string, kw *internal.KoshoWorktree, spec internal.BranchSpec) error {
-	// Ensure the .kosho dir is setup
-	err := internal.SetupKoshoDir()
-	if err != nil {
-		return fmt.Errorf("failed to update .gitignore: %w", err)
-	}
-
-	fmt.Printf("Creating worktree '%s' in %s\n", name, kw.WorktreePath())
+func createWorktree(kw *internal.KoshoWorktree, spec internal.BranchSpec) error {
+	fmt.Printf("Creating worktree '%s'\n", kw.Name())
 
 	// Create the worktree
-	err = kw.CreateIfNotExists(spec)
+	err := kw.CreateIfNotExists(spec)
 	if err != nil {
 		return fmt.Errorf("failed to create worktree: %w", err)
 	}
@@ -142,6 +127,5 @@ func runInWorktree(kw *internal.KoshoWorktree, command []string) error {
 
 func init() {
 	rootCmd.AddCommand(openCmd)
-	openCmd.Flags().StringVarP(&branchFlag, "branch", "b", "", "create a new branch")
-	openCmd.Flags().StringVarP(&resetBranchFlag, "reset-branch", "B", "", "create or reset a branch")
+	openCmd.Flags().StringVarP(&branchFlag, "branch", "b", "", "specify the name of the new branch")
 }

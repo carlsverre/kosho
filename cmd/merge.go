@@ -45,13 +45,12 @@ Use -m/--message to commit changes in the worktree before merging.`,
 		args, mergeArgs := internal.SplitArgs(cmd, args)
 		worktree := args[0]
 
-		// Find git root
-		repoRoot, err := internal.FindGitRoot()
+		koshoDir, err := internal.NewKoshoDir()
 		if err != nil {
-			return fmt.Errorf("failed to find git repository: %w", err)
+			return fmt.Errorf("failed to load Kosho dir: %w", err)
 		}
 
-		kw := internal.NewKoshoWorktree(repoRoot, worktree)
+		kw := internal.NewKoshoWorktree(*koshoDir, worktree)
 
 		// Check if worktree exists
 		exists, err := kw.Exists()
@@ -63,7 +62,7 @@ Use -m/--message to commit changes in the worktree before merging.`,
 		}
 
 		// Run the merge hook if it exists
-		if err := internal.RunKoshoHook(internal.HOOK_MERGE, kw); err != nil {
+		if err := internal.RunKoshoHook(kw, internal.HOOK_MERGE); err != nil {
 			return fmt.Errorf("failed to run merge hook: %w", err)
 		}
 
@@ -101,7 +100,7 @@ Use -m/--message to commit changes in the worktree before merging.`,
 
 		// Get current branch of main repo
 		currentBranchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-		currentBranchCmd.Dir = repoRoot
+		currentBranchCmd.Dir = koshoDir.RepoPath()
 		currentBranchOutput, err := currentBranchCmd.CombinedOutput()
 		if err != nil {
 			return fmt.Errorf("failed to get current branch: %w", err)
@@ -115,7 +114,7 @@ Use -m/--message to commit changes in the worktree before merging.`,
 		}
 
 		// Check if current branch is ancestor of worktree branch
-		isAncestor, err := internal.IsAncestor(repoRoot, currentBranch, worktreeBranch)
+		isAncestor, err := internal.IsAncestor(koshoDir.RepoPath(), currentBranch, worktreeBranch)
 		if err != nil {
 			return fmt.Errorf("failed to check ancestry: %w", err)
 		}
@@ -132,7 +131,7 @@ Use -m/--message to commit changes in the worktree before merging.`,
 		fmt.Printf("Merging worktree branch '%s' into '%s'...\n", worktreeBranch, currentBranch)
 
 		gitMerge := exec.Command(mergeCmd[0], mergeCmd[1:]...)
-		gitMerge.Dir = repoRoot
+		gitMerge.Dir = koshoDir.RepoPath()
 		gitMerge.Stdin = os.Stdin
 		gitMerge.Stdout = os.Stdout
 		gitMerge.Stderr = os.Stderr

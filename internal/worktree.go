@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 )
 
@@ -14,29 +13,29 @@ type BranchSpec struct {
 	BranchName string
 	// Commitish is the commit-ish to base the branch on (optional)
 	Commitish string
-	// Reset indicates whether to reset an existing branch to the target commitish
-	Reset bool
 }
 
 // KoshoWorktree represents a git worktree managed by Kosho
 type KoshoWorktree struct {
-	// RepoPath is the absolute path to the git repository root
-	RepoPath string
-	// WorktreeName is the name of the worktree directory
+	KoshoDir     KoshoDir
 	WorktreeName string
 }
 
 // NewKoshoWorktree creates a new KoshoWorktree instance
-func NewKoshoWorktree(repoPath, worktreeName string) *KoshoWorktree {
+func NewKoshoWorktree(root KoshoDir, worktreeName string) *KoshoWorktree {
 	return &KoshoWorktree{
-		RepoPath:     repoPath,
+		KoshoDir:     root,
 		WorktreeName: worktreeName,
 	}
 }
 
+func (kw *KoshoWorktree) Name() string {
+	return kw.WorktreeName
+}
+
 // WorktreePath returns the full path to the worktree directory
 func (kw *KoshoWorktree) WorktreePath() string {
-	return filepath.Join(kw.RepoPath, ".kosho", kw.WorktreeName)
+	return kw.KoshoDir.WorktreePath(kw.WorktreeName)
 }
 
 func (kw *KoshoWorktree) Exists() (bool, error) {
@@ -56,15 +55,11 @@ func (kw *KoshoWorktree) CreateIfNotExists(spec BranchSpec) error {
 	}
 
 	// Build git worktree add command
-	args := []string{"worktree", "add"}
+	args := []string{"worktree", "add", "--track"}
 
 	// Add branch flags if branch name is specified
 	if spec.BranchName != "" {
-		if spec.Reset {
-			args = append(args, "-B", spec.BranchName)
-		} else {
-			args = append(args, "-b", spec.BranchName)
-		}
+		args = append(args, "-b", spec.BranchName)
 	}
 
 	args = append(args, worktreePath)
@@ -75,7 +70,7 @@ func (kw *KoshoWorktree) CreateIfNotExists(spec BranchSpec) error {
 	}
 
 	cmd := exec.Command("git", args...)
-	cmd.Dir = kw.RepoPath
+	cmd.Dir = kw.KoshoDir.RepoPath()
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -94,7 +89,7 @@ func (kw *KoshoWorktree) Remove(force bool) error {
 	}
 
 	cmd := exec.Command("git", args...)
-	cmd.Dir = kw.RepoPath
+	cmd.Dir = kw.KoshoDir.RepoPath()
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
