@@ -91,6 +91,9 @@ func (kw *KoshoWorktree) Remove(force bool) error {
 	}
 
 	ahead, behind, err := kw.AheadBehind()
+	if err != nil {
+		return fmt.Errorf("failed to get branch status: %w", err)
+	}
 	if (ahead > 0 || behind > 0) && !force {
 		return fmt.Errorf("the branch '%s' is not fully merged", branch)
 	}
