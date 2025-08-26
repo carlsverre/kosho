@@ -86,7 +86,6 @@ Creates or opens a worktree. If the worktree doesn't exist, it will be created.
 **Flags:**
 
 - `-b, --branch <name>`: Create a new branch
-- `-B, --reset-branch <name>`: Create or reset a branch to the target commitish
 
 **Examples:**
 
@@ -102,9 +101,6 @@ kosho open hotfix v1.2.3
 
 # Run command instead of opening shell
 kosho open testing -- npm test
-
-# Reset existing branch to specific commit
-kosho open release -B release/v2.0 v2.0.0
 ```
 
 ### `kosho list`
@@ -114,14 +110,11 @@ Lists all kosho worktrees with their status and current git reference.
 **Output:**
 
 ```
-NAME        STATUS  REF
-bugfix      clean   main
-hotfix      dirty   hotfix
-my-feature  dirty   feature/my-feature
+NAME        UPSTREAM  REF     STATUS
+bugfix      main      bugfix  ahead 1
+hotfix      main      bug/1   ahead 2 (dirty)
+security    release   sec/1   ahead 1
 ```
-
-- **STATUS**: `clean` (no uncommitted changes) or `dirty` (has uncommitted changes)
-- **REF**: Current branch name or commit hash
 
 ### `kosho remove [flags] NAME`
 
@@ -167,6 +160,44 @@ kosho merge feature-auth -- --no-ff -m "Add authentication feature"
 
 Cleans up any dangling worktree references using `git worktree prune`.
 
+## Hooks
+
+Kosho supports hooks that run at specific points during worktree operations. Hooks are executable scripts stored in `.kosho/hooks/` and receive environment variables with context about the operation.
+
+### Available Hooks
+
+- **`create`**: Runs after a new worktree is created, before opening it
+- **`open`**: Runs before opening an existing worktree
+- **`merge`**: Runs during merge operations, before validation
+- **`remove`**: Runs before removing a worktree, before validation
+
+### Enabling Hooks
+
+Kosho automatically creates sample hook files (`.sample` extension) in `.kosho/hooks/`. To enable a hook:
+
+```bash
+# Enable the create hook
+mv .kosho/hooks/create.sample .kosho/hooks/create
+```
+
+### Environment Variables
+
+Hooks receive these environment variables:
+
+- `$KOSHO_HOOK`: The hook type (`create`, `open`, `merge`, `remove`)
+- `$KOSHO_WORKTREE`: Name of the worktree being operated on
+- `$KOSHO_REPO`: Path to the repository root
+
+**Example create hook (`.kosho/hooks/create`):**
+
+```bash
+#!/bin/sh
+echo "Setting up new worktree: $KOSHO_WORKTREE"
+
+# Install dependencies when creating a new worktree
+npm install
+```
+
 ## How It Works
 
 Kosho manages [git worktree]s in a `.kosho/` directory at your repository root:
@@ -174,10 +205,14 @@ Kosho manages [git worktree]s in a `.kosho/` directory at your repository root:
 ```
 your-repo/
 ├── .git/
-├── .kosho/           # Kosho worktrees directory (auto-added to .gitignore)
-│   ├── feature-a/    # Worktree for feature-a
-│   ├── bugfix/       # Worktree for bugfix
-│   └── experiment/   # Worktree for experiment
+├── .kosho/               # Kosho root directory
+│   ├── .gitignore        # Kosho specific gitignore
+│   ├── worktrees/
+│   │   ├── feature-a/    # Worktree for feature-a
+│   │   ├── bugfix/       # Worktree for bugfix
+│   │   └── experiment/   # Worktree for experiment
+│   └── hooks/
+│       └── create        # Hook script which runs when creating a worktree
 ├── src/
 └── README.md
 ```

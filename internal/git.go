@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,6 +8,7 @@ import (
 	"strings"
 )
 
+// FindGitRoot finds the root directory of the git repository, handling both regular repos and worktrees.
 func FindGitRoot() (string, error) {
 	// First check if we're in a worktree by examining the git directory
 	cmd := exec.Command("git", "rev-parse", "--git-dir")
@@ -38,40 +38,6 @@ func FindGitRoot() (string, error) {
 	return gitRoot, nil
 }
 
-func EnsureGitIgnored(glob string) error {
-	repoRoot, err := FindGitRoot()
-	if err != nil {
-		return fmt.Errorf("failed to find git repository: %w", err)
-	}
-	gitignorePath := filepath.Join(repoRoot, ".gitignore")
-
-	// Check if .gitignore exists and if /.kosho is already in it
-	if file, err := os.Open(gitignorePath); err == nil {
-		defer func() { _ = file.Close() }()
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			line := strings.TrimSpace(scanner.Text())
-			if line == glob {
-				return nil // Already present
-			}
-		}
-	}
-
-	// Update .gitignore
-	file, err := os.OpenFile(gitignorePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open .gitignore: %w", err)
-	}
-	defer func() { _ = file.Close() }()
-
-	_, err = fmt.Fprintf(file, "%s\n", glob)
-	if err != nil {
-		return fmt.Errorf("failed to write to .gitignore: %w", err)
-	}
-
-	return nil
-}
-
 // IsAncestor checks if ancestorRef is an ancestor of descendantRef using git merge-base
 func IsAncestor(repoPath, ancestorRef, descendantRef string) (bool, error) {
 	cmd := exec.Command("git", "merge-base", "--is-ancestor", ancestorRef, descendantRef)
@@ -87,4 +53,40 @@ func IsAncestor(repoPath, ancestorRef, descendantRef string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// RemoveLinesFromGitIgnore removes lines containing the specified substring from a .gitignore file,
+// preserving the original formatting including trailing newlines. Only writes if changes are needed.
+func RemoveLinesFromGitIgnore(gitIgnorePath, substring string) error {
+	// Read the entire file to preserve original format
+	originalContent, err := os.ReadFile(gitIgnorePath)
+	if err != nil {
+		return err
+	}
+
+	// Process lines directly from the content
+	contentLines := strings.Split(string(originalContent), "\n")
+
+	var lines []string
+	var foundMatch bool
+	for _, line := range contentLines {
+		if strings.Contains(line, substring) {
+			foundMatch = true
+		} else {
+			lines = append(lines, line)
+		}
+	}
+
+	// Only write if we found lines to remove
+	if !foundMatch {
+		return nil
+	}
+
+	// Rewrite .gitignore
+	newContent := strings.Join(lines, "\n")
+	if err := os.WriteFile(gitIgnorePath, []byte(newContent), 0644); err != nil {
+		return fmt.Errorf("failed to rewrite .gitignore: %w", err)
+	}
+
+	return nil
 }

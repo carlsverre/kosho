@@ -21,17 +21,21 @@ If the worktree is dirty, use --force to continue.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 
-		// Find git root
-		repoRoot, err := internal.FindGitRoot()
+		koshoDir, err := internal.NewKoshoDir()
 		if err != nil {
-			return fmt.Errorf("failed to find git repository: %w", err)
+			return fmt.Errorf("failed to load Kosho dir: %w", err)
 		}
 
-		kw := internal.NewKoshoWorktree(repoRoot, name)
+		kw := internal.NewKoshoWorktree(*koshoDir, name)
 
 		// Check if worktree exists
 		if _, err := os.Stat(kw.WorktreePath()); os.IsNotExist(err) {
 			return fmt.Errorf("worktree '%s' does not exist", name)
+		}
+
+		// Run the remove hook if it exists
+		if err := internal.RunKoshoHook(kw, internal.HOOK_REMOVE); err != nil {
+			return fmt.Errorf("failed to run remove hook: %w", err)
 		}
 
 		// Check if worktree is dirty (has uncommitted changes)

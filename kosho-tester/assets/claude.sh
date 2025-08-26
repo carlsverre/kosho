@@ -35,8 +35,9 @@ end'
 # Build the test instruction
 SYSTEM_PROMPT="You are now in a test repository for kosho. This repo has sample git history with main.py, utils.py, and README.md files.
 
-The kosho CLI tool is available at 'kosho'.
-The kosho docs are available at '/README.md'.
+The kosho CLI tool is available on the path as 'kosho'.
+The kosho codebase and docs is available at '/kosho'.
+
 Kosho manages git worktrees in .kosho/ directories for isolated development environments.
 
 Key kosho commands:

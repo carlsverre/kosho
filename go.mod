@@ -5,6 +5,7 @@ go 1.23.0
 toolchain go1.23.11
 
 require (
+	github.com/lithammer/dedent v1.1.0
 	github.com/rodaine/table v1.3.0
 	github.com/spf13/cobra v1.9.1
 )

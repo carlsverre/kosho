@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# The "create" hook runs immediately after a new worktree is created, before the
+# worktree is opened. The "open" hook will run immediately after this hook.
+# 
+# If this hook fails, the newly created worktree will be removed.
+#
+# To enable this hook, rename this file to "create".
+
+echo "Running $KOSHO_HOOK hook for worktree: $KOSHO_WORKTREE"
+
+# the hook is run in the worktree directory
+echo "Hook PWD: $PWD"
