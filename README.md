@@ -86,7 +86,6 @@ Creates or opens a worktree. If the worktree doesn't exist, it will be created.
 **Flags:**
 
 - `-b, --branch <name>`: Create a new branch
-- `-B, --reset-branch <name>`: Create or reset a branch to the target commitish
 
 **Examples:**
 
@@ -102,9 +101,6 @@ kosho open hotfix v1.2.3
 
 # Run command instead of opening shell
 kosho open testing -- npm test
-
-# Reset existing branch to specific commit
-kosho open release -B release/v2.0 v2.0.0
 ```
 
 ### `kosho list`
@@ -114,14 +110,11 @@ Lists all kosho worktrees with their status and current git reference.
 **Output:**
 
 ```
-NAME        STATUS  REF
-bugfix      clean   main
-hotfix      dirty   hotfix
-my-feature  dirty   feature/my-feature
+NAME        UPSTREAM  REF     STATUS
+bugfix      main      bugfix  ahead 1
+hotfix      main      bug/1   ahead 2 (dirty)
+security    release   sec/1   ahead 1
 ```
-
-- **STATUS**: `clean` (no uncommitted changes) or `dirty` (has uncommitted changes)
-- **REF**: Current branch name or commit hash
 
 ### `kosho remove [flags] NAME`
 
@@ -174,7 +167,7 @@ Kosho supports hooks that run at specific points during worktree operations. Hoo
 ### Available Hooks
 
 - **`create`**: Runs after a new worktree is created, before opening it
-- **`open`**: Runs before opening an existing worktree  
+- **`open`**: Runs before opening an existing worktree
 - **`merge`**: Runs during merge operations, before validation
 - **`remove`**: Runs before removing a worktree, before validation
 
@@ -212,10 +205,14 @@ Kosho manages [git worktree]s in a `.kosho/` directory at your repository root:
 ```
 your-repo/
 ├── .git/
-├── .kosho/           # Kosho worktrees directory (auto-added to .gitignore)
-│   ├── feature-a/    # Worktree for feature-a
-│   ├── bugfix/       # Worktree for bugfix
-│   └── experiment/   # Worktree for experiment
+├── .kosho/               # Kosho root directory
+│   ├── .gitignore        # Kosho specific gitignore
+│   ├── worktrees/
+│   │   ├── feature-a/    # Worktree for feature-a
+│   │   ├── bugfix/       # Worktree for bugfix
+│   │   └── experiment/   # Worktree for experiment
+│   └── hooks/
+│       └── create        # Hook script which runs when creating a worktree
 ├── src/
 └── README.md
 ```

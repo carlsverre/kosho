@@ -13,7 +13,7 @@ Core features complete including worktree management and merge workflows.
 ## Build & Test Commands
 
 - Build: `go build`
-- Run: `kosho ...`
+- Run: `./kosho ...`
 - Lint: `golangci-lint run`
 - Format: `golangci-lint fmt`
 - Check for dead code: `deadcode .`

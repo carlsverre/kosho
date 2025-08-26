@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -82,8 +83,18 @@ func (kw *KoshoWorktree) CreateIfNotExists(spec BranchSpec) error {
 	return nil
 }
 
-// Remove removes the worktree using git worktree remove
+// Remove removes the worktree and corresponding git branch
 func (kw *KoshoWorktree) Remove(force bool) error {
+	branch, err := kw.GitBranch()
+	if err != nil {
+		return fmt.Errorf("worktree is detached, refusing to remove")
+	}
+
+	ahead, behind, err := kw.AheadBehind()
+	if (ahead > 0 || behind > 0) && !force {
+		return fmt.Errorf("the branch '%s' is not fully merged", branch)
+	}
+
 	// Build git worktree remove command
 	args := []string{"worktree", "remove", kw.WorktreePath()}
 	if force {
@@ -96,6 +107,21 @@ func (kw *KoshoWorktree) Remove(force bool) error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to remove worktree: %w\nOutput: %s", err, string(output))
+	}
+
+	// attempt to remove the branch
+	args = []string{"branch"}
+	if force {
+		args = append(args, "-D", branch)
+	} else {
+		args = append(args, "-d", branch)
+	}
+	cmd = exec.Command("git", args...)
+	cmd.Dir = kw.KoshoDir.RepoPath()
+
+	output, err = cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to remove branch: %w\nOutput: %s", err, string(output))
 	}
 
 	return nil
@@ -117,28 +143,46 @@ func (kw *KoshoWorktree) RunCommand(command []string) error {
 	return cmd.Run()
 }
 
+// AheadBehind returns the number of commits ahead and behind the upstream
+func (kw *KoshoWorktree) AheadBehind() (int, int, error) {
+	cmd := exec.Command("git", "rev-list", "--left-right", "--count", "@{u}...HEAD")
+	cmd.Dir = kw.WorktreePath()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to run git rev-list: %w", err)
+	}
+
+	counts := strings.Fields(strings.TrimSpace(string(output)))
+	if len(counts) != 2 {
+		return 0, 0, fmt.Errorf("unexpected output from git rev-list: %s", string(output))
+	}
+
+	behind, err := strconv.Atoi(counts[0])
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to parse rev-list output: %w", err)
+	}
+	ahead, err := strconv.Atoi(counts[1])
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to parse rev-list output: %w", err)
+	}
+	return ahead, behind, nil
+
+}
+
 // Status returns a string describing the worktree's current status relative to its base
 func (kw *KoshoWorktree) Status() (string, error) {
 	var statusParts []string
 
-	cmd := exec.Command("git", "rev-list", "--left-right", "--count", "@{u}...HEAD")
-	cmd.Dir = kw.WorktreePath()
-	output, err := cmd.CombinedOutput()
-
+	ahead, behind, err := kw.AheadBehind()
 	if err != nil {
-		return "", fmt.Errorf("failed to get git status: %w", err)
+		return "", err
 	}
-	counts := strings.Fields(strings.TrimSpace(string(output)))
-	if len(counts) == 2 {
-		behind := counts[0]
-		ahead := counts[1]
-
-		if behind != "0" {
-			statusParts = append(statusParts, fmt.Sprintf("behind %s", behind))
-		}
-		if ahead != "0" {
-			statusParts = append(statusParts, fmt.Sprintf("ahead %s", ahead))
-		}
+	if ahead != 0 {
+		statusParts = append(statusParts, fmt.Sprintf("ahead %d", ahead))
+	}
+	if behind != 0 {
+		statusParts = append(statusParts, fmt.Sprintf("behind %d", behind))
 	}
 
 	isDirty, err := kw.IsDirty()
