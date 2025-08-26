@@ -51,10 +51,6 @@ func (kw *KoshoWorktree) Exists() (bool, error) {
 func (kw *KoshoWorktree) CreateIfNotExists(spec BranchSpec) error {
 	worktreePath := kw.WorktreePath()
 
-	// if err := os.MkdirAll(worktreePath, 0755); err != nil {
-	// 	return fmt.Errorf("failed to create worktree directory: %w", err)
-	// }
-
 	// Build git worktree add command
 	args := []string{"worktree", "add", "--track"}
 
@@ -170,7 +166,6 @@ func (kw *KoshoWorktree) AheadBehind() (int, int, error) {
 		return 0, 0, fmt.Errorf("failed to parse rev-list output: %w", err)
 	}
 	return ahead, behind, nil
-
 }
 
 // Status returns a string describing the worktree's current status relative to its base
