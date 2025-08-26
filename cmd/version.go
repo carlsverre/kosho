@@ -18,29 +18,18 @@ var versionCmd = &cobra.Command{
 			return
 		}
 
-		version := "dev"
-		commit := "unknown"
-		fullSHA, _ := cmd.Flags().GetBool("full")
+		fmt.Println(info.Main.Version)
 
 		for _, setting := range info.Settings {
 			switch setting.Key {
 			case "vcs.revision":
-				commit = setting.Value
-				if !fullSHA && len(commit) > 7 {
-					commit = commit[:7]
-				}
-			case "vcs.modified":
-				if setting.Value == "true" {
-					commit += "-dirty"
-				}
+				fmt.Println(setting.Value)
 			}
 		}
 
-		fmt.Printf("kosho %s (commit %s)\n", version, commit)
 	},
 }
 
 func init() {
-	versionCmd.Flags().BoolP("full", "f", false, "show full git SHA instead of short version")
 	rootCmd.AddCommand(versionCmd)
 }
