@@ -64,8 +64,6 @@ func RunKoshoHook(worktree *KoshoWorktree, hook KoshoHook) error {
 	cmd.Dir = worktree.WorktreePath()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Env = append(cmd.Env, "KOSHO_HOOK="+string(hook))
-	cmd.Env = append(cmd.Env, "KOSHO_WORKTREE="+worktree.WorktreeName)
 	cmd.Env = append(os.Environ(),
 		"KOSHO_HOOK="+string(hook),
 		"KOSHO_WORKTREE="+worktree.WorktreeName,

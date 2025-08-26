@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -44,22 +43,10 @@ func setupKoshoRepo(repoDir string) error {
 	// if the root .gitignore contains .kosho, remove it
 	// this is an upgrade step from an earlier Kosho version
 	rootGitIgnorePath := filepath.Join(repoDir, ".gitignore")
-	if file, err := os.Open(rootGitIgnorePath); err == nil {
-		defer func() { _ = file.Close() }()
-		scanner := bufio.NewScanner(file)
-		var lines []string
-		for scanner.Scan() {
-			line := scanner.Text()
-			if !strings.Contains(line, ".kosho") {
-				lines = append(lines, line)
-			}
-		}
-		if err := scanner.Err(); err != nil {
-			return fmt.Errorf("error reading .gitignore: %w", err)
-		}
-		// Rewrite .gitignore without the .kosho line
-		if err := os.WriteFile(rootGitIgnorePath, []byte(strings.Join(lines, "\n")), 0644); err != nil {
-			return fmt.Errorf("failed to rewrite .gitignore: %w", err)
+	if err := RemoveLinesFromGitIgnore(rootGitIgnorePath, ".kosho"); err != nil {
+		// Only return error if it's not a "file doesn't exist" error
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove .kosho from .gitignore: %w", err)
 		}
 	}
 

@@ -1,7 +1,9 @@
 package internal
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -51,4 +53,54 @@ func IsAncestor(repoPath, ancestorRef, descendantRef string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// RemoveLinesFromGitIgnore removes lines containing the specified substring from a .gitignore file,
+// preserving the original formatting including trailing newlines. Only writes if changes are needed.
+func RemoveLinesFromGitIgnore(gitIgnorePath, substring string) error {
+	file, err := os.Open(gitIgnorePath)
+	if err != nil {
+		return err // File doesn't exist or can't be opened, nothing to do
+	}
+	defer func() { _ = file.Close() }()
+
+	// Read the entire file to preserve original format
+	content, err := os.ReadFile(gitIgnorePath)
+	if err != nil {
+		return fmt.Errorf("error reading .gitignore: %w", err)
+	}
+
+	originalContent := string(content)
+	hadTrailingNewline := strings.HasSuffix(originalContent, "\n")
+
+	scanner := bufio.NewScanner(file)
+	var lines []string
+	var foundMatch bool
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(line, substring) {
+			foundMatch = true
+		} else {
+			lines = append(lines, line)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("error reading .gitignore: %w", err)
+	}
+
+	// Only write if we found lines to remove
+	if !foundMatch {
+		return nil
+	}
+
+	// Rewrite .gitignore without the lines containing substring, preserving trailing newline
+	newContent := strings.Join(lines, "\n")
+	if hadTrailingNewline && len(lines) > 0 {
+		newContent += "\n"
+	}
+	if err := os.WriteFile(gitIgnorePath, []byte(newContent), 0644); err != nil {
+		return fmt.Errorf("failed to rewrite .gitignore: %w", err)
+	}
+
+	return nil
 }

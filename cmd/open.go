@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
 	"syscall"
 
 	"github.com/carlsverre/kosho/internal"
@@ -38,11 +37,6 @@ If a command is provided after --, runs that command instead.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		args, command := internal.SplitArgs(cmd, args)
 		name := args[0]
-
-		// reserve worktree names starting with "kosho_"
-		if strings.HasPrefix(name, "kosho_") {
-			return fmt.Errorf("worktree names cannot start with 'kosho_'")
-		}
 
 		var commitish string
 		if len(args) > 1 {
