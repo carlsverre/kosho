@@ -50,9 +50,9 @@ func (kw *KoshoWorktree) Exists() (bool, error) {
 func (kw *KoshoWorktree) CreateIfNotExists(spec BranchSpec) error {
 	worktreePath := kw.WorktreePath()
 
-	if err := os.MkdirAll(worktreePath, 0755); err != nil {
-		return fmt.Errorf("failed to create worktree directory: %w", err)
-	}
+	// if err := os.MkdirAll(worktreePath, 0755); err != nil {
+	// 	return fmt.Errorf("failed to create worktree directory: %w", err)
+	// }
 
 	// Build git worktree add command
 	args := []string{"worktree", "add", "--track"}
@@ -60,6 +60,8 @@ func (kw *KoshoWorktree) CreateIfNotExists(spec BranchSpec) error {
 	// Add branch flags if branch name is specified
 	if spec.BranchName != "" {
 		args = append(args, "-b", spec.BranchName)
+	} else {
+		args = append(args, "-b", kw.Name())
 	}
 
 	args = append(args, worktreePath)
@@ -99,6 +101,57 @@ func (kw *KoshoWorktree) Remove(force bool) error {
 	return nil
 }
 
+// RunCommand runs a command in the worktree directory
+func (kw *KoshoWorktree) RunCommand(command []string) error {
+	if len(command) == 0 {
+		return fmt.Errorf("no command provided")
+	}
+
+	cmd := exec.Command(command[0], command[1:]...)
+	cmd.Dir = kw.WorktreePath()
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+
+	return cmd.Run()
+}
+
+// Status returns a string describing the worktree's current status relative to its base
+func (kw *KoshoWorktree) Status() (string, error) {
+	var statusParts []string
+
+	cmd := exec.Command("git", "rev-list", "--left-right", "--count", "@{u}...HEAD")
+	cmd.Dir = kw.WorktreePath()
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		return "", fmt.Errorf("failed to get git status: %w", err)
+	}
+	counts := strings.Fields(strings.TrimSpace(string(output)))
+	if len(counts) == 2 {
+		behind := counts[0]
+		ahead := counts[1]
+
+		if behind != "0" {
+			statusParts = append(statusParts, fmt.Sprintf("behind %s", behind))
+		}
+		if ahead != "0" {
+			statusParts = append(statusParts, fmt.Sprintf("ahead %s", ahead))
+		}
+	}
+
+	isDirty, err := kw.IsDirty()
+	if err != nil {
+		return "", fmt.Errorf("failed to check if worktree is dirty: %w", err)
+	}
+	if isDirty {
+		statusParts = append(statusParts, "(dirty)")
+	}
+
+	return strings.Join(statusParts, " "), nil
+}
+
 // IsDirty checks if the worktree has uncommitted changes
 func (kw *KoshoWorktree) IsDirty() (bool, error) {
 	cmd := exec.Command("git", "status", "--porcelain")
@@ -111,67 +164,6 @@ func (kw *KoshoWorktree) IsDirty() (bool, error) {
 
 	// If output is empty, worktree is clean
 	return len(output) > 0, nil
-}
-
-// RunCommand runs a command in the worktree directory
-func (kw *KoshoWorktree) RunCommand(command []string) error {
-	if len(command) == 0 {
-		return fmt.Errorf("no command provided")
-	}
-
-	cmd := exec.Command(command[0], command[1:]...)
-	cmd.Dir = kw.WorktreePath()
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	return cmd.Run()
-}
-
-// GitRef returns the current git reference (branch name or commit hash)
-func (kw *KoshoWorktree) GitRef() (string, error) {
-	// Try to get current branch name first
-	cmd := exec.Command("git", "branch", "--show-current")
-	cmd.Dir = kw.WorktreePath()
-
-	output, err := cmd.CombinedOutput()
-	if err == nil {
-		branch := strings.TrimSpace(string(output))
-		if branch != "" {
-			return branch, nil
-		}
-	}
-
-	// If no branch name, get short commit hash
-	cmd = exec.Command("git", "rev-parse", "--short", "HEAD")
-	cmd.Dir = kw.WorktreePath()
-	output, err = cmd.CombinedOutput()
-	if err != nil {
-		return "unknown", nil
-	}
-
-	return strings.TrimSpace(string(output)), nil
-}
-
-// HasOutstandingCommits checks if the worktree has commits ahead of the main repo's current branch
-func (kw *KoshoWorktree) HasOutstandingCommits(mainRepoBranch string) (bool, error) {
-	// Get worktree branch
-	worktreeBranch, err := kw.GitBranch()
-	if err != nil {
-		return false, fmt.Errorf("failed to get worktree branch: %w", err)
-	}
-
-	// Check if there are commits in worktree branch that are not in main branch
-	cmd := exec.Command("git", "rev-list", "--count", mainRepoBranch+".."+worktreeBranch)
-	cmd.Dir = kw.WorktreePath()
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return false, fmt.Errorf("failed to check outstanding commits: %w", err)
-	}
-
-	count := strings.TrimSpace(string(output))
-	return count != "0", nil
 }
 
 // GitBranch returns the current branch name of the worktree
@@ -190,4 +182,19 @@ func (kw *KoshoWorktree) GitBranch() (string, error) {
 	}
 
 	return branch, nil
+}
+
+// GetUpstream returns the upstream branch name if one exists
+func (kw *KoshoWorktree) GetUpstream() (string, error) {
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "@{u}")
+	cmd.Dir = kw.WorktreePath()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// No upstream configured
+		return "", nil
+	}
+
+	upstream := strings.TrimSpace(string(output))
+	return upstream, nil
 }

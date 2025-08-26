@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os/exec"
-	"strings"
 
 	"github.com/carlsverre/kosho/internal"
 
@@ -31,46 +29,24 @@ var listCmd = &cobra.Command{
 			return nil
 		}
 
-		// Get current branch of main repo
-		currentBranchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-		currentBranchCmd.Dir = koshoDir.RepoPath()
-		currentBranchOutput, err := currentBranchCmd.CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("failed to get current branch: %w", err)
-		}
-		currentBranch := strings.TrimSpace(string(currentBranchOutput))
-
-		tbl := table.New("NAME", "STATUS", "REF", "MERGE-READY")
+		tbl := table.New("NAME", "UPSTREAM", "REF", "STATUS")
 		for _, kw := range worktrees {
-			// Check git status
-			isDirty, err := kw.IsDirty()
-			var gitStatus string
+			upstream, err := kw.GetUpstream()
 			if err != nil {
-				gitStatus = "error"
-			} else if isDirty {
-				gitStatus = "dirty"
-			} else {
-				gitStatus = "clean"
+				upstream = "unknown"
 			}
 
-			// Get current branch/ref
-			gitRef, err := kw.GitRef()
+			gitRef, err := kw.GitBranch()
 			if err != nil {
-				gitRef = "unknown"
+				gitRef = "detached"
 			}
 
-			// Check if worktree has outstanding commits
-			var mergeReady string
-			hasCommits, err := kw.HasOutstandingCommits(currentBranch)
+			status, err := kw.Status()
 			if err != nil {
-				mergeReady = "error"
-			} else if hasCommits {
-				mergeReady = "yes"
-			} else {
-				mergeReady = "no"
+				status = "error"
 			}
 
-			tbl.AddRow(kw.Name(), gitStatus, gitRef, mergeReady)
+			tbl.AddRow(kw.Name(), upstream, gitRef, status)
 		}
 
 		tbl.Print()
