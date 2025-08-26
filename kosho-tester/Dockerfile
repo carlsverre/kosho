@@ -33,7 +33,7 @@ USER ubuntu
 # Install Claude
 ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
 ENV PATH=$PATH:/usr/local/share/npm-global/bin
-RUN npm install -g @anthropic-ai/claude-code
+RUN npm install -g @anthropic-ai/claude-code@1.0.92
 
 # Configuration vars
 ENV NODE_OPTIONS=--max-old-space-size=4096
