@@ -187,12 +187,18 @@ Hooks receive these environment variables:
 - `$KOSHO_HOOK`: The hook type (`create`, `open`, `merge`, `remove`)
 - `$KOSHO_WORKTREE`: Name of the worktree being operated on
 - `$KOSHO_REPO`: Path to the repository root
+- `$PWD` / `$KOSHO_WORKTREE_PATH`: Full path to the worktree directory (the hook is also run within the worktree directory)
 
 **Example create hook (`.kosho/hooks/create`):**
 
 ```bash
 #!/bin/sh
 echo "Setting up new worktree: $KOSHO_WORKTREE"
+echo "Worktree path: $KOSHO_WORKTREE_PATH"
+echo "Repository root: $KOSHO_REPO"
+
+# Copy environment file from repo root to worktree
+cp "$KOSHO_REPO/.env.example" "$KOSHO_WORKTREE_PATH/.env"
 
 # Install dependencies when creating a new worktree
 npm install
