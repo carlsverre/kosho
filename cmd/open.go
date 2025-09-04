@@ -50,6 +50,8 @@ If a command is provided after --, runs that command instead.`,
 
 		kw := internal.NewKoshoWorktree(*koshoDir, name)
 
+		createdWorktree := false
+
 		// Check if worktree already exists
 		if _, err := os.Stat(kw.WorktreePath()); os.IsNotExist(err) {
 			// Create branch specification
@@ -73,12 +75,21 @@ If a command is provided after --, runs that command instead.`,
 				fmt.Printf("Worktree '%s' has been removed due to create hook failure.\n", kw.Name())
 				return fmt.Errorf("failed to run create hook: %w", err)
 			}
+
+			createdWorktree = true
 		} else if err != nil {
 			return fmt.Errorf("failed to check worktree path: %w", err)
 		}
 
 		// Run the open hook if it exists
 		if err := internal.RunKoshoHook(kw, internal.HOOK_OPEN); err != nil {
+			if createdWorktree {
+				fmt.Printf("Open hook failed, cleaning up worktree '%s'...\n", kw.Name())
+				if remove_err := kw.Remove(true); remove_err != nil {
+					return fmt.Errorf("failed to remove worktree after open hook failure: %w", remove_err)
+				}
+				fmt.Printf("Worktree '%s' has been removed due to open hook failure.\n", kw.Name())
+			}
 			return fmt.Errorf("failed to run open hook: %w", err)
 		}
 

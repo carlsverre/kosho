@@ -8,8 +8,6 @@
 # To enable this hook, rename this file to "create".
 
 echo "Running $KOSHO_HOOK hook for worktree: $KOSHO_WORKTREE"
-echo "Repository root: $KOSHO_REPO"
-echo "Worktree path: $KOSHO_WORKTREE_PATH"
 
 # the hook is run in the worktree directory
 echo "Hook PWD: $PWD"
