@@ -69,6 +69,7 @@ func RunKoshoHook(worktree *KoshoWorktree, hook KoshoHook) error {
 		"KOSHO_HOOK="+string(hook),
 		"KOSHO_WORKTREE="+worktree.WorktreeName,
 		"KOSHO_REPO="+worktree.KoshoDir.RepoPath(),
+		"KOSHO_WORKTREE_PATH="+worktree.WorktreePath(),
 	)
 
 	if err := cmd.Run(); err != nil {
