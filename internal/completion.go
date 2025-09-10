@@ -1,37 +1,24 @@
 package internal
 
 import (
-	"os"
-	"path/filepath"
-
 	"github.com/spf13/cobra"
 )
 
 // GetWorktreeNames returns a list of available worktree names for autocompletion
 func GetWorktreeNames() ([]string, error) {
-	repoRoot, err := FindGitRoot()
+	koshoDir, err := NewKoshoDir()
 	if err != nil {
 		return nil, err
 	}
 
-	koshoDir := filepath.Join(repoRoot, ".kosho")
-
-	// Check if .kosho directory exists
-	if _, err := os.Stat(koshoDir); os.IsNotExist(err) {
-		return []string{}, nil
-	}
-
-	// List directories in .kosho
-	entries, err := os.ReadDir(koshoDir)
+	worktrees, err := koshoDir.ListWorktrees()
 	if err != nil {
 		return nil, err
 	}
 
 	var worktreeNames []string
-	for _, entry := range entries {
-		if entry.IsDir() {
-			worktreeNames = append(worktreeNames, entry.Name())
-		}
+	for _, worktree := range worktrees {
+		worktreeNames = append(worktreeNames, worktree.Name())
 	}
 
 	return worktreeNames, nil
