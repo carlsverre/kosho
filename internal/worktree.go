@@ -52,7 +52,7 @@ func (kw *KoshoWorktree) CreateIfNotExists(spec BranchSpec) error {
 	worktreePath := kw.WorktreePath()
 
 	// Build git worktree add command
-	args := []string{"worktree", "add", "--track"}
+	args := []string{"worktree", "add"}
 
 	// Add branch flags if branch name is specified
 	if spec.BranchName != "" {
