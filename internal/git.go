@@ -38,23 +38,6 @@ func FindGitRoot() (string, error) {
 	return gitRoot, nil
 }
 
-// IsAncestor checks if ancestorRef is an ancestor of descendantRef using git merge-base
-func IsAncestor(repoPath, ancestorRef, descendantRef string) (bool, error) {
-	cmd := exec.Command("git", "merge-base", "--is-ancestor", ancestorRef, descendantRef)
-	cmd.Dir = repoPath
-
-	err := cmd.Run()
-	if err != nil {
-		// Exit code 1 means not an ancestor, other exit codes are actual errors
-		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
-			return false, nil
-		}
-		return false, fmt.Errorf("failed to check ancestry: %w", err)
-	}
-
-	return true, nil
-}
-
 // RemoveLinesFromGitIgnore removes lines containing the specified substring from a .gitignore file,
 // preserving the original formatting including trailing newlines. Only writes if changes are needed.
 func RemoveLinesFromGitIgnore(gitIgnorePath, substring string) error {
@@ -89,4 +72,23 @@ func RemoveLinesFromGitIgnore(gitIgnorePath, substring string) error {
 	}
 
 	return nil
+}
+
+func ListBranches(gitRoot string) ([]string, error) {
+	cmd := exec.Command("git", "-C", gitRoot, "branch", "--format=%(refname:short)")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list branches: %w", err)
+	}
+
+	branches := strings.Split(strings.TrimSpace(string(output)), "\n")
+	return branches, nil
+}
+
+func BranchExists(gitRoot string, branchName string) bool {
+	cmd := exec.Command("git", "-C", gitRoot, "show-ref", "--quiet", fmt.Sprintf("refs/heads/%s", branchName))
+	if err := cmd.Run(); err != nil {
+		return false
+	}
+	return true
 }

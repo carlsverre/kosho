@@ -27,8 +27,9 @@ type KoshoDir struct {
 	repoPath string
 }
 
-// NewKoshoDir creates a new KoshoDir instance and sets up the kosho directory structure.
-func NewKoshoDir() (*KoshoDir, error) {
+// LoadKoshoDir creates a new KoshoDir instance and sets up the kosho directory
+// structure if needed.
+func LoadKoshoDir() (*KoshoDir, error) {
 	repoPath, err := FindGitRoot()
 	if err != nil {
 		return nil, err

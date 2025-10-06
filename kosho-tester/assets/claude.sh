@@ -42,10 +42,8 @@ Kosho manages git worktrees in .kosho/ directories for isolated development envi
 
 Key kosho commands:
 - kosho list: Show all worktrees and their status
-- kosho open <name> [-b branch]: Create/open a worktree
-- kosho merge <name>: Merge worktree branch into current branch
-- kosho remove <name>: Remove a worktree
-- kosho prune: Clean up dangling worktree references
+- kosho run <branch> command...: Run a command in a worktree, creating it if it doens't exist
+- kosho prune: Clean up clean worktrees, does not remove their branches
 
 Always report on what works and any issues you find."
 

@@ -4,29 +4,24 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
-// BranchSpec encapsulates branch creation parameters for git worktree
-type BranchSpec struct {
-	// BranchName is the name of the branch to create or checkout
-	BranchName string
-	// Commitish is the commit-ish to base the branch on (optional)
-	Commitish string
-}
-
 // KoshoWorktree represents a git worktree managed by Kosho
 type KoshoWorktree struct {
 	KoshoDir     KoshoDir
+	BranchName   string
 	WorktreeName string
 }
 
 // NewKoshoWorktree creates a new KoshoWorktree instance
-func NewKoshoWorktree(root KoshoDir, worktreeName string) *KoshoWorktree {
+func NewKoshoWorktree(root KoshoDir, branchName string) *KoshoWorktree {
 	return &KoshoWorktree{
 		KoshoDir:     root,
-		WorktreeName: worktreeName,
+		BranchName:   branchName,
+		WorktreeName: sluggify(branchName),
 	}
 }
 
@@ -48,24 +43,16 @@ func (kw *KoshoWorktree) Exists() (bool, error) {
 	return true, nil
 }
 
-func (kw *KoshoWorktree) CreateIfNotExists(spec BranchSpec) error {
+func (kw *KoshoWorktree) CreateWorktree() error {
 	worktreePath := kw.WorktreePath()
 
-	// Build git worktree add command
 	args := []string{"worktree", "add"}
-
-	// Add branch flags if branch name is specified
-	if spec.BranchName != "" {
-		args = append(args, "-b", spec.BranchName)
+	if !BranchExists(kw.KoshoDir.repoPath, kw.BranchName) {
+		args = append(args, "-b", kw.BranchName, worktreePath)
+	} else if kw.BranchName != kw.WorktreeName {
+		args = append(args, worktreePath, kw.BranchName)
 	} else {
-		args = append(args, "-b", kw.Name())
-	}
-
-	args = append(args, worktreePath)
-
-	// Add commitish if specified
-	if spec.Commitish != "" {
-		args = append(args, spec.Commitish)
+		args = append(args, worktreePath)
 	}
 
 	cmd := exec.Command("git", args...)
@@ -79,21 +66,9 @@ func (kw *KoshoWorktree) CreateIfNotExists(spec BranchSpec) error {
 	return nil
 }
 
-// Remove removes the worktree and corresponding git branch
+// Remove the worktree if it's clean, but leaves the branch as is.
+// force will cause the worktree to be removed even if it's dirty
 func (kw *KoshoWorktree) Remove(force bool) error {
-	branch, err := kw.GitBranch()
-	if err != nil {
-		return fmt.Errorf("worktree is detached, refusing to remove")
-	}
-
-	ahead, behind, err := kw.AheadBehind()
-	if err != nil {
-		return fmt.Errorf("failed to get branch status: %w", err)
-	}
-	if (ahead > 0 || behind > 0) && !force {
-		return fmt.Errorf("the branch '%s' is not fully merged", branch)
-	}
-
 	// Build git worktree remove command
 	args := []string{"worktree", "remove", kw.WorktreePath()}
 	if force {
@@ -106,21 +81,6 @@ func (kw *KoshoWorktree) Remove(force bool) error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to remove worktree: %w\nOutput: %s", err, string(output))
-	}
-
-	// attempt to remove the branch
-	args = []string{"branch"}
-	if force {
-		args = append(args, "-D", branch)
-	} else {
-		args = append(args, "-d", branch)
-	}
-	cmd = exec.Command("git", args...)
-	cmd.Dir = kw.KoshoDir.RepoPath()
-
-	output, err = cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("failed to remove branch: %w\nOutput: %s", err, string(output))
 	}
 
 	return nil
@@ -172,15 +132,22 @@ func (kw *KoshoWorktree) AheadBehind() (int, int, error) {
 func (kw *KoshoWorktree) Status() (string, error) {
 	var statusParts []string
 
-	ahead, behind, err := kw.AheadBehind()
+	upstream, err := kw.GetUpstream()
 	if err != nil {
 		return "", err
 	}
-	if ahead != 0 {
-		statusParts = append(statusParts, fmt.Sprintf("ahead %d", ahead))
-	}
-	if behind != 0 {
-		statusParts = append(statusParts, fmt.Sprintf("behind %d", behind))
+
+	if upstream != "" {
+		ahead, behind, err := kw.AheadBehind()
+		if err != nil {
+			return "", err
+		}
+		if ahead != 0 {
+			statusParts = append(statusParts, fmt.Sprintf("ahead %d", ahead))
+		}
+		if behind != 0 {
+			statusParts = append(statusParts, fmt.Sprintf("behind %d", behind))
+		}
 	}
 
 	isDirty, err := kw.IsDirty()
@@ -189,9 +156,20 @@ func (kw *KoshoWorktree) Status() (string, error) {
 	}
 	if isDirty {
 		statusParts = append(statusParts, "(dirty)")
+	} else {
+		statusParts = append(statusParts, "(clean)")
 	}
 
 	return strings.Join(statusParts, " "), nil
+}
+
+// IsClean checks if the worktree is not dirty
+func (kw *KoshoWorktree) IsClean() (bool, error) {
+	isDirty, err := kw.IsDirty()
+	if err != nil {
+		return false, fmt.Errorf("failed to check if worktree is dirty: %w", err)
+	}
+	return !isDirty, nil
 }
 
 // IsDirty checks if the worktree has uncommitted changes
@@ -239,4 +217,15 @@ func (kw *KoshoWorktree) GetUpstream() (string, error) {
 
 	upstream := strings.TrimSpace(string(output))
 	return upstream, nil
+}
+
+var slugRegex = regexp.MustCompile(`[^\p{L}\p{N}]+`)
+
+// returns a version of the string with the following changes:
+// - lowercased
+// - replace all punctuation, symbols, whitespace with `-`
+func sluggify(s string) string {
+	s = strings.ToLower(s)
+	s = slugRegex.ReplaceAllString(s, "-")
+	return strings.Trim(s, "-")
 }
