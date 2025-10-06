@@ -19,10 +19,13 @@ func checkRunArgs(cmd *cobra.Command, args []string) error {
 }
 
 var runCmd = &cobra.Command{
-	Use:   "run [BRANCH] [command...]",
-	Short: "Runs a command in a Git worktree on a specific branch",
-	Long: `Runs a command in a Git worktree located at .kosho/BRANCH.
-	       If the worktree or branch doesn't exist, it will be created.`,
+	Use:   "run BRANCH COMMAND [args...]",
+	Short: "Runs COMMAND in a Git worktree checked out to BRANCH",
+	Long: `Runs COMMAND in a Git worktree located at .kosho/BRANCH.
+If the worktree or branch doesn't exist, it will be created. Any
+additional arguments and flags will be passed through as-is to the
+command.`,
+	Example:           "kosho run bugfix pnpm build",
 	Args:              checkRunArgs,
 	ValidArgsFunction: internal.RunCompletion,
 	RunE: func(cmd *cobra.Command, args []string) error {
