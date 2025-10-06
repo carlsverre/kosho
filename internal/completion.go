@@ -4,31 +4,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// GetWorktreeNames returns a list of available worktree names for autocompletion
-func GetWorktreeNames() ([]string, error) {
-	koshoDir, err := NewKoshoDir()
-	if err != nil {
-		return nil, err
-	}
-
-	worktrees, err := koshoDir.ListWorktrees()
-	if err != nil {
-		return nil, err
-	}
-
-	var worktreeNames []string
-	for _, worktree := range worktrees {
-		worktreeNames = append(worktreeNames, worktree.Name())
-	}
-
-	return worktreeNames, nil
-}
-
-// WorktreeCompletionFunc provides autocompletion for worktree names
-func WorktreeCompletionFunc(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	worktreeNames, err := GetWorktreeNames()
+// RunCompletion provides autocompletion for `kosho run`
+func RunCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	repoRoot, err := FindGitRoot()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
+
 	}
-	return worktreeNames, cobra.ShellCompDirectiveNoFileComp
+	if len(args) < 1 {
+		// completing the branch name
+		branches, err := ListBranches(repoRoot)
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveError
+		}
+		return branches, cobra.ShellCompDirectiveNoFileComp
+	} else {
+		// completing the shell command to run
+	}
+
+	return nil, cobra.ShellCompDirectiveDefault
 }

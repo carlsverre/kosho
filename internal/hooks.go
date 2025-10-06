@@ -14,14 +14,8 @@ const (
 	// Runs after a worktree is created
 	HOOK_CREATE KoshoHook = "create"
 
-	// Runs before opening a worktree
-	HOOK_OPEN KoshoHook = "open"
-
-	// Runs while merging a worktree, before validation
-	HOOK_MERGE KoshoHook = "merge"
-
-	// Runs before removing a worktree
-	HOOK_REMOVE KoshoHook = "remove"
+	// Runs before running a command inside a worktree
+	HOOK_RUN KoshoHook = "run"
 )
 
 var (
@@ -50,7 +44,7 @@ func writeKoshoHookSamples(hookDir string) error {
 }
 
 // RunKoshoHook executes a kosho hook script if it exists, running it in the worktree directory.
-func RunKoshoHook(worktree *KoshoWorktree, hook KoshoHook) error {
+func RunKoshoHook(worktree *KoshoWorktree, hook KoshoHook, extraEnv ...string) error {
 	hookFile := worktree.KoshoDir.HookPath(hook)
 
 	// abort if hook does not exist
@@ -71,6 +65,7 @@ func RunKoshoHook(worktree *KoshoWorktree, hook KoshoHook) error {
 		"KOSHO_REPO="+worktree.KoshoDir.RepoPath(),
 		"KOSHO_WORKTREE_PATH="+worktree.WorktreePath(),
 	)
+	cmd.Env = append(cmd.Env, extraEnv...)
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to run hook %s: %w", hook, err)

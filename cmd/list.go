@@ -14,7 +14,7 @@ var listCmd = &cobra.Command{
 	Short: "List all kosho worktrees",
 	Long:  `List all kosho worktrees and their current git status.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		koshoDir, err := internal.NewKoshoDir()
+		koshoDir, err := internal.LoadKoshoDir()
 		if err != nil {
 			return fmt.Errorf("failed to load Kosho dir: %w", err)
 		}
