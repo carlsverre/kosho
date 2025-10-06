@@ -8,7 +8,7 @@
 **Kosho** creates and manages [git worktree]s in `.kosho/` directories, making it easy to work on multiple branches simultaneously without the overhead of cloning repositories or switching contexts.
 
 ```bash
-go install github.com/carlsverre/kosho
+go install github.com/carlsverre/kosho@latest
 ```
 
 ## Why Use Kosho?
