@@ -84,3 +84,11 @@ func ListBranches(gitRoot string) ([]string, error) {
 	branches := strings.Split(strings.TrimSpace(string(output)), "\n")
 	return branches, nil
 }
+
+func BranchExists(gitRoot string, branchName string) bool {
+	cmd := exec.Command("git", "-C", gitRoot, "show-ref", "--quiet", fmt.Sprintf("refs/heads/%s", branchName))
+	if err := cmd.Run(); err != nil {
+		return false
+	}
+	return true
+}

@@ -79,7 +79,7 @@ func createWorktree(kw *internal.KoshoWorktree) error {
 	fmt.Printf("Creating worktree '%s'... ", kw.Name())
 
 	// Create the worktree
-	err := kw.CreateIfNotExists()
+	err := kw.CreateWorktree()
 	if err != nil {
 		fmt.Printf("ERROR\n")
 		return fmt.Errorf("failed to create worktree: %w", err)

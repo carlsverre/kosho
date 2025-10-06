@@ -43,10 +43,19 @@ func (kw *KoshoWorktree) Exists() (bool, error) {
 	return true, nil
 }
 
-func (kw *KoshoWorktree) CreateIfNotExists() error {
+func (kw *KoshoWorktree) CreateWorktree() error {
 	worktreePath := kw.WorktreePath()
 
-	cmd := exec.Command("git", "worktree", "add", worktreePath, kw.BranchName)
+	args := []string{"worktree", "add"}
+	if !BranchExists(kw.KoshoDir.repoPath, kw.BranchName) {
+		args = append(args, "-b", kw.BranchName, worktreePath)
+	} else if kw.BranchName != kw.WorktreeName {
+		args = append(args, worktreePath, kw.BranchName)
+	} else {
+		args = append(args, worktreePath)
+	}
+
+	cmd := exec.Command("git", args...)
 	cmd.Dir = kw.KoshoDir.RepoPath()
 
 	output, err := cmd.CombinedOutput()
