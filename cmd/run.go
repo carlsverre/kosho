@@ -2,13 +2,30 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/carlsverre/kosho/internal"
 
 	"github.com/spf13/cobra"
 )
 
+func hasHelp(args []string) bool {
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, "-") {
+			break
+		}
+		if arg == "--help" || arg == "-h" {
+			return true
+		}
+	}
+	return false
+}
+
 func checkRunArgs(cmd *cobra.Command, args []string) error {
+	if hasHelp(args) {
+		return nil
+	}
+
 	if len(args) == 0 {
 		return fmt.Errorf("BRANCH argument is required")
 	}
@@ -25,10 +42,16 @@ var runCmd = &cobra.Command{
 If the worktree or branch doesn't exist, it will be created. Any
 additional arguments and flags will be passed through as-is to the
 command.`,
-	Example:           "kosho run bugfix pnpm build",
-	Args:              checkRunArgs,
-	ValidArgsFunction: internal.RunCompletion,
+	Example:            "kosho run bugfix pnpm build",
+	Args:               checkRunArgs,
+	ValidArgsFunction:  internal.RunCompletion,
+	DisableFlagParsing: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Handle --help explicitly when flag parsing is disabled
+		if hasHelp(args) {
+			return cmd.Help()
+		}
+
 		branch, rest := args[0], args[1:]
 
 		koshoDir, err := internal.LoadKoshoDir()
